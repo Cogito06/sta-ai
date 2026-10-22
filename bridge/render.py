@@ -44,10 +44,14 @@ def powers_text(powers):
 
 
 class Renderer:
-    def __init__(self, catalog=None, card_text="first"):
+    def __init__(self, catalog=None, card_text="combat"):
+        """card_text: "combat" = full card text the first time a card shows in each combat,
+        "first" = only the first time in the run, "always" = every time."""
         self.catalog = catalog or Catalog()
         self.card_text_mode = card_text
         self.seen = set()
+        self.combat_seen = set()
+        self.in_combat = False
         self.hand_labels = {}
         self.hand_turn = None
         self.path = []
@@ -115,7 +119,13 @@ class Renderer:
         if flags:
             parts.append(f"[{', '.join(flags)}]")
         key = ("card", card["id"], card.get("upgrades", 0))
-        show_text = always_text or self.card_text_mode == "always" or self.first_time(key)
+        if self.card_text_mode == "combat" and self.in_combat:
+            fresh = key not in self.combat_seen
+            self.combat_seen.add(key)
+            self.seen.add(key)
+        else:
+            fresh = self.first_time(key)
+        show_text = always_text or self.card_text_mode == "always" or fresh
         face = self.card_face(card) if show_text else None
         if face:
             parts.append(f"- {face}")
@@ -369,6 +379,10 @@ class Renderer:
         if not message.get("in_game"):
             return "Main menu."
         gs = message["game_state"]
+        in_combat = bool(gs.get("combat_state"))
+        if in_combat and not self.in_combat:
+            self.combat_seen = set()
+        self.in_combat = in_combat
         lines = [self.header(gs)]
         screen = gs.get("screen_type")
         if screen in self.SCREENS:

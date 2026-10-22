@@ -199,3 +199,13 @@ class CombatEdgeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CardTextModeTest(unittest.TestCase):
+    def test_full_text_again_in_the_next_combat(self):
+        renderer = Renderer()
+        fight = combat_message([card("Dropkick", damage=5)], [monster("Cultist", 48)])
+        self.assertIn("Vulnerable", render(fight, renderer))
+        self.assertNotIn("Vulnerable", render(fight, renderer))
+        render(message("MAP", {"next_nodes": [], "boss_available": False}), renderer)
+        self.assertIn("Vulnerable", render(fight, renderer))
