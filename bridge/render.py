@@ -72,11 +72,11 @@ class Renderer:
 
     def card_numbers(self, card):
         parts = []
-        if "damage" in card:
+        if card.get("damage", -1) >= 0:
             parts.append(f"{card['damage']} dmg")
-        if "block" in card:
+        if card.get("block", -1) >= 0:
             parts.append(f"{card['block']} blk")
-        if "magic_number" in card:
+        if card.get("magic_number", -1) >= 0:
             parts.append(f"M{card['magic_number']}")
         return ", ".join(parts)
 
@@ -85,9 +85,12 @@ class Renderer:
         version = self.catalog.card_version(card["id"], card.get("upgrades", 0))
         if version is None:
             return None
-        values = {"damage": card.get("damage", version.get("damage")),
-                  "block": card.get("block", version.get("block")),
-                  "magic_number": card.get("magic_number", version.get("magic_number"))}
+        # Cards outside combat (rewards, shop, deck) report -1 until the game computes them;
+        # the card face then shows the catalog value.
+        values = {}
+        for key in ("damage", "block", "magic_number"):
+            value = card.get(key, -1)
+            values[key] = value if value is not None and value >= 0 else version.get(key)
         try:
             return version["template"].format(**values)
         except (KeyError, IndexError):

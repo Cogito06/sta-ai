@@ -47,5 +47,12 @@ class RenderTest(unittest.TestCase):
         self.assertIn("Next: 0 M(x1)  1 M(x3)  2 M(x4)", text)
 
 
+
+class CardFaceTest(unittest.TestCase):
+    def test_reward_cards_without_computed_values_use_the_catalog(self):
+        card = {"id": "Heavy Blade", "upgrades": 0, "cost": 2, "damage": -1, "magic_number": 3, "uuid": "x"}
+        self.assertEqual(Renderer().card_face(card), "Deal 14 damage. Strength affects this card 3 times.")
+
+
 if __name__ == "__main__":
     unittest.main()
