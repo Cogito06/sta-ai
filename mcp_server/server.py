@@ -1,0 +1,70 @@
+"""MCP server that lets Claude Code play Slay the Spire through bridge/game_link.py.
+
+Run the game with CommunicationMod's command set to bridge/game_link.py first; this server
+connects to it on localhost:8765.
+"""
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+
+from mcp.server.mcpserver import MCPServer  # noqa: E402
+
+from bridge.session import ActionError, LinkClient, Session  # noqa: E402
+
+mcp = MCPServer("slay-the-spire")
+_session = None
+
+
+def session():
+    global _session
+    if _session is None:
+        _session = Session(LinkClient())
+    return _session
+
+
+@mcp.tool()
+def start_run(seed: str = "") -> str:
+    """Start a new Ironclad Ascension 0 run. Optional seed (letters and digits, as shown in game)."""
+    try:
+        return session().start_run(seed or None)
+    except ActionError as e:
+        return f"ERR {e}"
+
+
+@mcp.tool()
+def get_state() -> str:
+    """Show the current game state."""
+    return session().get_state()
+
+
+@mcp.tool()
+def act(actions: str, stop_on: str = "") -> str:
+    """Do one or more actions, separated by ';'.
+
+    play <hand letter|card name> [enemy]   end   potion <slot> [enemy]   drop <slot>
+    choose <n>   confirm   skip   repeat play <Attack|Skill|Power|cost0|card name> [enemy]
+
+    Hand letters stay fixed for the whole turn. A sequence stops early when new cards enter
+    the hand, a choice is needed, enemies change, or the combat ends. stop_on: comma-separated
+    subset of draw,choice,spawn to stop on (default all three).
+    """
+    stops = [s.strip() for s in stop_on.split(",") if s.strip()] or None
+    return session().act(actions, stops)
+
+
+@mcp.tool()
+def inspect(what: str) -> str:
+    """Look something up without changing the game: deck, draw, discard, exhaust, relics,
+    potions, map, card <name>, relic <name>, enemy <n>."""
+    return session().inspect(what)
+
+
+@mcp.tool()
+def note(text: str, tag: str = "") -> str:
+    """Write a note to the run log (reasons for key decisions; tag="plan" for the run's plan)."""
+    return session().note(text, tag or None)
+
+
+if __name__ == "__main__":
+    mcp.run()
