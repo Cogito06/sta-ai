@@ -8,6 +8,7 @@ Every message from the game is also appended to runs/link/<timestamp>.jsonl.
 """
 import datetime
 import json
+import os
 import pathlib
 import queue
 import socketserver
@@ -39,6 +40,9 @@ class GameLink:
             self.log.write(line + "\n")
             self.log.flush()
             self.incoming.put(message)
+        # The game closed the pipe: it has exited, so stop serving a dead link.
+        self.log.close()
+        os._exit(0)
 
     def send(self, command):
         with self.lock:

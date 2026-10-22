@@ -28,13 +28,27 @@ class LinkClient:
     """Talks to bridge/game_link.py over localhost."""
 
     def __init__(self, host="127.0.0.1", port=8765):
-        self.sock = socket.create_connection((host, port), timeout=60)
+        self.address = (host, port)
+        self.connect()
+
+    def connect(self):
+        self.sock = socket.create_connection(self.address, timeout=60)
         self.file = self.sock.makefile("rwb")
 
     def _request(self, request):
-        self.file.write((json.dumps(request) + "\n").encode("utf-8"))
-        self.file.flush()
-        return json.loads(self.file.readline())
+        for attempt in (1, 2):
+            try:
+                self.file.write((json.dumps(request) + "\n").encode("utf-8"))
+                self.file.flush()
+                line = self.file.readline()
+                if not line:
+                    raise ConnectionError("the game link closed the connection")
+                return json.loads(line)
+            except OSError:
+                # The game (and its link) may have been restarted: reconnect once.
+                if attempt == 2:
+                    raise
+                self.connect()
 
     def send(self, command):
         return self._request({"send": command})
@@ -124,9 +138,10 @@ class Session:
         self.send(command)
         seed_value = game_state(self.message).get("seed")
         self.start_log(seed or seed_value)
-        auto = self.auto_handle()
+        result = []
+        auto = self.safe_auto_handle(result)
         self.log(input=f"start_run {seed or ''}".strip(), auto=auto)
-        return self.compose([], auto)
+        return self.compose(result, auto)
 
     def continue_run(self):
         if self.message.get("in_game"):
@@ -136,9 +151,10 @@ class Session:
         self.renderer = Renderer(self.renderer.catalog, self.renderer.card_text_mode)
         self.send("continue")
         self.start_log(game_state(self.message).get("seed"), resume=True)
-        auto = self.auto_handle()
+        result = []
+        auto = self.safe_auto_handle(result)
         self.log(input="continue_run", auto=auto)
-        return self.compose([], auto)
+        return self.compose(result, auto)
 
     def get_state(self):
         self.message = self.link.get()
@@ -158,6 +174,7 @@ class Session:
                 words = step.split()
                 if words[0] == "repeat":
                     count, stop_reason = self.repeat(words[1:], stop_on, result)
+                    result.append(f"\"{step}\" played {count} card(s).")
                     done.append(f"{step} ({count}x)")
                 else:
                     stop_reason = self.do(words, stop_on, result)
@@ -167,17 +184,30 @@ class Session:
                 if stop_reason:
                     if i < len(steps) - 1:
                         result.insert(0, f"Done {i + 1}/{len(steps)}, stopped after \"{step}\": {stop_reason}.")
+                    else:
+                        result.insert(0, f"Done {len(steps)}/{len(steps)} ({stop_reason}).")
                     break
             else:
                 result.insert(0, f"Done {len(steps)}/{len(steps)}.")
         except ActionError as e:
             result.insert(0, f"ERR \"{step}\": {e}. Nothing after this was run.")
-        auto = self.auto_handle()
+        auto = self.safe_auto_handle(result)
         self.log(input=actions, executed=len(done), stop_reason=stop_reason, auto=auto)
         return self.compose(result, auto)
 
+    def safe_auto_handle(self, result):
+        try:
+            return self.auto_handle()
+        except ActionError as e:
+            result.append(f"ERR during automatic steps: {e}.")
+            return []
+
     def compose(self, result, auto):
-        lines = list(result)
+        # One line for all cards drawn during the sequence instead of one per play.
+        drawn = [line[len("New in hand: "):-1] for line in result if line.startswith("New in hand: ")]
+        lines = [line for line in result if not line.startswith("New in hand: ")]
+        if drawn:
+            lines.insert(1 if lines else 0, "New in hand: " + ", ".join(drawn) + ".")
         if auto:
             lines.append("[auto] " + ", ".join(auto))
         lines.append(self.text())
@@ -194,10 +224,9 @@ class Session:
             self.send("end")
             return None
         elif verb == "potion":
-            target = f" {args[1]}" if len(args) > 1 else ""
-            self.send(f"potion use {args[0]}{target}")
+            self.send(self.potion_command(args))
         elif verb == "drop":
-            self.send(f"potion discard {args[0]}")
+            self.send(f"potion discard {self.potion_slot(args)}")
         elif verb == "choose":
             self.choose(args)
         elif verb == "confirm":
@@ -210,6 +239,37 @@ class Session:
             raise ActionError(f"unknown action '{verb}'")
         return self.check_stop(before, stop_on, result)
 
+    def potion_slot(self, args):
+        potions = game_state(self.message).get("potions", [])
+        if not args or not args[0].isdigit():
+            raise ActionError("give the potion slot number")
+        slot = int(args[0])
+        if slot >= len(potions) or potions[slot]["id"] == "Potion Slot":
+            raise ActionError(f"no potion in slot {slot}")
+        return slot
+
+    def potion_command(self, args):
+        slot = self.potion_slot(args)
+        potion = game_state(self.message)["potions"][slot]
+        if not potion.get("requires_target"):
+            return f"potion use {slot}"
+        target = self.check_target(args[1] if len(args) > 1 else None, potion["name"])
+        return f"potion use {slot} {target}"
+
+    def check_target(self, target, what):
+        """A living enemy's index; the only living enemy when none is given."""
+        combat = combat_of(self.message)
+        if not combat:
+            raise ActionError(f"{what} needs an enemy, and there is no combat")
+        alive = [j for j, m in enumerate(combat["monsters"]) if not m["is_gone"]]
+        if target is None:
+            if len(alive) != 1:
+                raise ActionError(f"{what} needs a target")
+            return alive[0]
+        if not target.isdigit() or int(target) not in alive:
+            raise ActionError(f"enemy {target} is not a living enemy (living: {', '.join(map(str, alive))})")
+        return int(target)
+
     def pick_available(self, *names):
         for name in names:
             if name in self.available():
@@ -220,6 +280,9 @@ class Session:
         if not args or not args[0].isdigit():
             raise ActionError("choose needs a number")
         gs = game_state(self.message)
+        choices = gs.get("choice_list")
+        if choices is not None and int(args[0]) >= len(choices):
+            raise ActionError(f"choose 0 to {len(choices) - 1}" if choices else "nothing to choose here")
         if gs.get("screen_type") == "MAP" and gs["screen_state"].get("boss_available"):
             self.send("choose boss")
         else:
@@ -251,12 +314,7 @@ class Session:
         if not card.get("is_playable"):
             raise ActionError(f"{card['name']} can't be played now")
         if card.get("has_target"):
-            if target is None:
-                alive = [j for j, m in enumerate(combat_of(self.message)["monsters"]) if not m["is_gone"]]
-                if len(alive) != 1:
-                    raise ActionError(f"{card['name']} needs a target")
-                target = str(alive[0])
-            return f"play {i + 1} {target}"
+            return f"play {i + 1} {self.check_target(target, card['name'])}"
         return f"play {i + 1}"
 
     def repeat(self, args, stop_on, result):
@@ -357,7 +415,8 @@ class Session:
                 self.send("choose 0")
                 done.append(f"event: {choices[0]}")
                 continue
-            if screen in ("NONE", "COMPLETE", "SHOP_ROOM") and not combat_of(self.message) and "proceed" in self.available() and "choose" not in self.available():
+            if screen not in ("GAME_OVER", "SHOP_SCREEN", "GRID", "HAND_SELECT") and not combat_of(self.message) \
+                    and "proceed" in self.available() and "choose" not in self.available():
                 self.send("proceed")
                 continue
             return done
@@ -379,7 +438,7 @@ class Session:
     def inspect(self, what):
         gs = game_state(self.message)
         combat = gs.get("combat_state") or {}
-        words = what.strip().split(maxsplit=1)
+        words = what.strip().split(maxsplit=1) or [""]
         key, arg = words[0].lower(), (words[1] if len(words) > 1 else "")
         cat = self.renderer.catalog
         if key == "deck":
@@ -405,6 +464,8 @@ class Session:
                     return f"{relic['name']}: {relic['text']}"
             return f"Unknown relic '{arg}'."
         if key == "enemy" and arg.isdigit() and combat:
+            if int(arg) >= len(combat["monsters"]):
+                return f"No enemy {arg}."
             monster = combat["monsters"][int(arg)]
             return self.renderer.monster_line(int(arg), monster)
         return "Use: deck, draw, discard, exhaust, relics, potions, map, card <name>, relic <name>, enemy <n>."

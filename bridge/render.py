@@ -140,6 +140,11 @@ class Renderer:
         used = set(self.hand_labels.values())
         for card in combat["hand"]:
             if card["uuid"] not in self.hand_labels:
+                if len(used) == len(HAND_LETTERS):
+                    # A long draw loop used every letter: free those of cards that left the hand.
+                    in_hand = {c["uuid"] for c in combat["hand"]}
+                    self.hand_labels = {u: l for u, l in self.hand_labels.items() if u in in_hand}
+                    used = set(self.hand_labels.values())
                 letter = next(c for c in HAND_LETTERS if c not in used)
                 self.hand_labels[card["uuid"]] = letter
                 used.add(letter)
@@ -264,27 +269,34 @@ class Renderer:
         return lines
 
     def shop(self, gs):
+        # Same order and affordability rule as the mod's choice list: purge, cards, relics, potions.
         ss = gs["screen_state"]
-        choices = gs.get("choice_list", [])
-        index = {name: i for i, name in reversed(list(enumerate(choices)))}
+        gold = gs["gold"]
         lines = ["== Shop =="]
+        next_index = 0
 
-        def price_tag(name, price):
-            i = index.get(name.lower())
-            return f" {i}" if i is not None else " -", f"{price}g" + ("" if i is not None else " (can't afford)")
+        def tag(price):
+            nonlocal next_index
+            if price > gold:
+                return " -", f"{price}g (can't afford)"
+            next_index += 1
+            return f" {next_index - 1}", f"{price}g"
 
-        for card in ss.get("cards", []):
-            i, tag = price_tag(card["name"], card["price"])
-            lines.append(f"{i} [{tag}] " + self.card_line(card, "", always_text=True))
-        for relic in ss.get("relics", []):
-            i, tag = price_tag(relic["name"], relic["price"])
-            lines.append(f"{i} [{tag}] " + self.relic_line(relic, always_text=True))
-        for potion in ss.get("potions", []):
-            i, tag = price_tag(potion["name"], potion["price"])
-            lines.append(f"{i} [{tag}] {potion['name']} - {self.catalog.potion_text(potion['id']) or ''}")
+        purge = None
         if ss.get("purge_available"):
-            i = index.get("purge")
-            lines.append(f"{' ' + str(i) if i is not None else ' -'} [{ss['purge_cost']}g] Remove a card")
+            purge = tag(ss["purge_cost"])
+        for item in ss.get("cards", []):
+            i, price = tag(item["price"])
+            lines.append(f"{i} [{price}] " + self.card_line(item, "", always_text=True))
+        for item in ss.get("relics", []):
+            i, price = tag(item["price"])
+            lines.append(f"{i} [{price}] " + self.relic_line(item, always_text=True))
+        for item in ss.get("potions", []):
+            i, price = tag(item["price"])
+            lines.append(f"{i} [{price}] {item['name']} - {self.catalog.potion_text(item['id']) or ''}")
+        if purge:
+            lines.append(f"{purge[0]} [{purge[1]}] Remove a card")
+        lines.append("skip: leave the shop")
         return lines
 
     def rest(self, gs):
@@ -313,6 +325,8 @@ class Renderer:
             lines.append(f" {i} " + self.card_line(card, "", show_cost=True))
         if ss.get("selected_cards"):
             lines.append("Selected: " + self.pile(ss["selected_cards"]))
+        if ss.get("confirm_up"):
+            lines.append("Selection complete: confirm to finish")
         return lines
 
     def hand_select(self, gs):
@@ -344,5 +358,15 @@ class Renderer:
         elif gs.get("combat_state"):
             lines += self.combat(gs)
         else:
-            lines.append(f"== {screen} ==")
+            lines += self.generic(gs, message.get("available_commands", []))
         return "\n".join(lines)
+
+    def generic(self, gs, commands):
+        """Screens with no special view (shop room, chest, ...): list the raw choices."""
+        names = {"SHOP_ROOM": "Shop room", "CHEST": "Treasure", "COMPLETE": "Room cleared", "NONE": "Waiting"}
+        lines = [f"== {names.get(gs.get('screen_type'), gs.get('screen_type'))} =="]
+        lines += [f" {i} {choice}" for i, choice in enumerate(gs.get("choice_list", []))]
+        exits = [c for c in commands if c in ("proceed", "confirm", "skip", "leave", "cancel", "return")]
+        if exits:
+            lines.append("Or: " + ", ".join(exits))
+        return lines

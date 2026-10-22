@@ -3,8 +3,10 @@
 Run the game with CommunicationMod's command set to bridge/game_link.py first; this server
 connects to it on localhost:8765.
 """
+import functools
 import pathlib
 import sys
+import traceback
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
@@ -23,32 +25,45 @@ def session():
     return _session
 
 
+def guarded(tool):
+    """Errors come back as text the LLM can read instead of failing the tool call."""
+    @functools.wraps(tool)
+    def wrapper(*args, **kwargs):
+        try:
+            return tool(*args, **kwargs)
+        except ActionError as e:
+            return f"ERR {e}"
+        except OSError as e:
+            return f"ERR can't reach the game ({e}). Is the game running with CommunicationMod?"
+        except Exception:
+            return "ERR internal bridge error, please report:\n" + traceback.format_exc(limit=3)
+    return wrapper
+
+
 @mcp.tool()
+@guarded
 def start_run(seed: str = "", overwrite: bool = False) -> str:
     """Start a new Ironclad Ascension 0 run. Optional seed (letters and digits, as shown in game).
     Refuses when a saved run exists, unless overwrite is true (that deletes the saved run)."""
-    try:
-        return session().start_run(seed or None, overwrite)
-    except ActionError as e:
-        return f"ERR {e}"
+    return session().start_run(seed or None, overwrite)
 
 
 @mcp.tool()
+@guarded
 def continue_run() -> str:
     """Resume the saved run, like the main menu's Continue button."""
-    try:
-        return session().continue_run()
-    except ActionError as e:
-        return f"ERR {e}"
+    return session().continue_run()
 
 
 @mcp.tool()
+@guarded
 def get_state() -> str:
     """Show the current game state."""
     return session().get_state()
 
 
 @mcp.tool()
+@guarded
 def act(actions: str, stop_on: str = "") -> str:
     """Do one or more actions, separated by ';'.
 
@@ -64,6 +79,7 @@ def act(actions: str, stop_on: str = "") -> str:
 
 
 @mcp.tool()
+@guarded
 def inspect(what: str) -> str:
     """Look something up without changing the game: deck, draw, discard, exhaust, relics,
     potions, map, card <name>, relic <name>, enemy <n>."""
@@ -71,6 +87,7 @@ def inspect(what: str) -> str:
 
 
 @mcp.tool()
+@guarded
 def note(text: str, tag: str = "") -> str:
     """Write a note to the run log (reasons for key decisions; tag="plan" for the run's plan)."""
     return session().note(text, tag or None)
