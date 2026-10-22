@@ -518,3 +518,54 @@ class SecondRunFindingsTest(unittest.TestCase):
         from bridge.render import Renderer
         line = Renderer().monster_line(1, monster("Darkling", 0, 50, gone=True, half_dead=True))
         self.assertIn("reviving", line)
+
+
+class MemoryTest(unittest.TestCase):
+    def setUp(self):
+        import pathlib, tempfile
+        from bridge import session as session_module
+        self.tmp = tempfile.TemporaryDirectory()
+        self.module, self.old_root = session_module, session_module.ROOT
+        session_module.ROOT = pathlib.Path(self.tmp.name)
+
+    def tearDown(self):
+        self.module.ROOT = self.old_root
+        self.tmp.cleanup()
+
+    def map_message(self):
+        return message("MAP", {"next_nodes": [{"x": 1, "y": 2, "symbol": "M"}, {"x": 2, "y": 2, "symbol": "E"}],
+                               "boss_available": False}, commands=("choose",), choices=["x=1", "x=2"])
+
+    def test_plan_and_route_show_on_decision_screens_and_persist(self):
+        session, _ = session_for(self.map_message())
+        session.continue_run()
+        session.note("Strength build: Demon Form, Heavy Blade.", "plan")
+        session.note("Shop at x4 then elite.", "route")
+        session.note("Route changed: rest first.", "route")
+        session.note("Lagavulin wakes after 3 turns.")
+        text = session.text()
+        self.assertIn("Plan (F5): Strength build", text)
+        self.assertIn("Route (F5): Route changed", text)
+        self.assertNotIn("Shop at x4", text)
+        self.assertNotIn("Lagavulin", text)
+        again, _ = session_for(self.map_message())
+        again.continue_run()
+        memory = again.inspect("memory")
+        self.assertIn("Strength build", memory)
+        self.assertIn("F5: Lagavulin wakes after 3 turns.", memory)
+
+    def test_memory_hidden_in_combat_and_when_off(self):
+        import os
+        session, _ = session_for(combat_message([strike()], [monster("Cultist", 50)]))
+        session.continue_run()
+        session.note("Kill the cultist first.", "plan")
+        self.assertNotIn("Kill the cultist", session.text())
+        os.environ["STS_MEMORY"] = "off"
+        try:
+            off, _ = session_for(self.map_message())
+            off.continue_run()
+            off.note("x", "plan")
+            self.assertNotIn("Plan", off.text())
+            self.assertEqual(off.inspect("memory"), "Memory is off for this run.")
+        finally:
+            del os.environ["STS_MEMORY"]

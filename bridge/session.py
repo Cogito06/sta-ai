@@ -6,11 +6,13 @@ per-run log.
 """
 import datetime
 import json
+import os
 import pathlib
 import re
 import socket
 import time
 
+from bridge.memory import RunMemory
 from bridge.render import Renderer
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -19,6 +21,8 @@ DEFAULT_STOP_ON = {"draw", "choice", "spawn"}
 # Cards that cost HP; `repeat` never plays them unless they are named.
 SELF_DAMAGE = {"Hemokinesis", "Offering", "Bloodletting", "J.A.X.", "Combust", "Brutality"}
 CHOICE_SCREENS = {"HAND_SELECT", "GRID", "CARD_REWARD"}
+# Screens where the run memory's plan and route are shown above the state.
+DECISION_SCREENS = {"MAP", "CARD_REWARD", "SHOP_SCREEN", "REST", "BOSS_REWARD", "EVENT"}
 ROOMS = {"M": "Monster", "E": "Elite", "?": "Unknown", "$": "Shop", "R": "Rest", "T": "Treasure"}
 
 
@@ -76,6 +80,9 @@ class Session:
         self.left_shop_floor = None
         self.run_dir = None
         self.step = 0
+        # STS_MEMORY=off hides the run memory from the player (baseline runs); notes are still logged.
+        self.memory_on = os.environ.get("STS_MEMORY", "on").lower() not in ("off", "0", "false")
+        self.memory = RunMemory()
 
     # ---------- logging ----------
 
@@ -86,10 +93,12 @@ class Session:
             if earlier:
                 self.run_dir = earlier[-1]
                 self.step = len(list((self.run_dir / "raw").glob("*.json")))
+                self.memory = RunMemory(self.run_dir / "memory.json")
                 return
         stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.run_dir = ROOT / "runs" / f"{stamp}_seed-{seed}"
         (self.run_dir / "raw").mkdir(parents=True, exist_ok=True)
+        self.memory = RunMemory(self.run_dir / "memory.json")
 
     def log(self, **entry):
         if self.run_dir is None:
@@ -126,7 +135,13 @@ class Session:
         return self.message.get("available_commands", [])
 
     def text(self):
-        return self.renderer.render(self.message)
+        text = self.renderer.render(self.message)
+        if self.memory_on and game_state(self.message).get("screen_type") in DECISION_SCREENS:
+            remembered = self.memory.header()
+            if remembered:
+                first, _, rest = text.partition("\n")
+                text = "\n".join([first] + remembered + [rest])
+        return text
 
     # ---------- tools ----------
 
@@ -173,6 +188,7 @@ class Session:
         return self.text()
 
     def note(self, text, tag=None):
+        self.memory.write(text, tag, game_state(self.message).get("floor"))
         self.log(note=text, tag=tag)
         return "Noted."
 
@@ -523,6 +539,8 @@ class Session:
         words = what.strip().split(maxsplit=1) or [""]
         key, arg = words[0].lower(), (words[1] if len(words) > 1 else "")
         cat = self.renderer.catalog
+        if key == "memory":
+            return self.memory.full() if self.memory_on else "Memory is off for this run."
         if key == "deck":
             return "Deck: " + self.renderer.pile(gs.get("deck", []))
         if key in ("draw", "discard", "exhaust"):
@@ -550,4 +568,4 @@ class Session:
                 return f"No enemy {arg}."
             monster = combat["monsters"][int(arg)]
             return self.renderer.monster_line(int(arg), monster)
-        return "Use: deck, draw, discard, exhaust, relics, potions, map, card <name>, relic <name>, enemy <n>."
+        return "Use: memory, deck, draw, discard, exhaust, relics, potions, map, card <name>, relic <name>, enemy <n>."

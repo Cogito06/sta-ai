@@ -81,7 +81,7 @@ def act(actions: str, stop_on: str = "") -> str:
 @mcp.tool()
 @guarded
 def inspect(what: str) -> str:
-    """Look something up without changing the game: deck, draw, discard, exhaust, relics,
+    """Look something up without changing the game: memory, deck, draw, discard, exhaust, relics,
     potions, map, card <name>, relic <name>, enemy <n>."""
     return session().inspect(what)
 
@@ -89,7 +89,11 @@ def inspect(what: str) -> str:
 @mcp.tool()
 @guarded
 def note(text: str, tag: str = "") -> str:
-    """Write a note to the run log (reasons for key decisions; tag="plan" for the run's plan)."""
+    """Write something to remember to this run's memory (kept outside the conversation).
+
+    tag="plan" (build idea) and tag="route" (route intention) replace the previous one and are
+    shown on map, reward, shop, rest, boss relic and event screens. Any other tag, or none, is
+    added to the notes; read everything back with inspect("memory")."""
     return session().note(text, tag or None)
 
 
