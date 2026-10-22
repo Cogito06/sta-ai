@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 
 public class DataWriter implements Runnable {
@@ -28,7 +29,8 @@ public class DataWriter implements Runnable {
                 if (verbose) {
                     logger.info("Sending message: " + message);
                 }
-                stream.write(message.getBytes());
+                // sts-ai: always UTF-8, not the system code page (GBK on Chinese Windows).
+                stream.write(message.getBytes(StandardCharsets.UTF_8));
                 stream.write('\n');
                 stream.flush();
             } catch (InterruptedException e) {

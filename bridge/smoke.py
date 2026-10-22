@@ -40,6 +40,8 @@ def pick_command(msg):
 
 
 def main():
+    # The modified CommunicationMod always sends UTF-8.
+    sys.stdin.reconfigure(encoding="utf-8")
     OUT.mkdir(parents=True, exist_ok=True)
     log = open(OUT / "commands.log", "w", encoding="utf-8")
     print("ready", flush=True)

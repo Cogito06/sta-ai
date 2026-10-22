@@ -14,6 +14,8 @@ OUT = ROOT / "runs" / "probe" / datetime.datetime.now().strftime("%Y%m%d_%H%M%S"
 
 
 def main():
+    # The modified CommunicationMod always sends UTF-8.
+    sys.stdin.reconfigure(encoding="utf-8")
     OUT.mkdir(parents=True, exist_ok=True)
     # CommunicationMod waits for "ready" before it starts sending states.
     print("ready", flush=True)
