@@ -569,3 +569,18 @@ class MemoryTest(unittest.TestCase):
             self.assertEqual(off.inspect("memory"), "Memory is off for this run.")
         finally:
             del os.environ["STS_MEMORY"]
+
+
+class OverlayTest(unittest.TestCase):
+    def test_deck_view_opened_by_a_human_is_closed_first(self):
+        first = combat_message([strike()], [monster("Cultist", 50)], is_screen_up=True, screen_name="MASTER_DECK_VIEW")
+
+        def step(m, command):
+            if command == "key CANCEL":
+                m["game_state"].update(is_screen_up=False, screen_name="NONE")
+                return m
+            return SimpleCombat()(m, command)
+        session, game = session_for(first, step)
+        out = session.act("play a 0")
+        self.assertEqual(game.sent, ["key CANCEL", "play 1 0"])
+        self.assertIn("Closed the master deck view", out)

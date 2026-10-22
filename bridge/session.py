@@ -21,6 +21,8 @@ DEFAULT_STOP_ON = {"draw", "choice", "spawn"}
 # Cards that cost HP; `repeat` never plays them unless they are named.
 SELF_DAMAGE = {"Hemokinesis", "Offering", "Bloodletting", "J.A.X.", "Combust", "Brutality"}
 CHOICE_SCREENS = {"HAND_SELECT", "GRID", "CARD_REWARD"}
+# Views a human can open on top of the game (deck, piles, settings); actions fail while one is open.
+OVERLAYS = {"MASTER_DECK_VIEW", "GAME_DECK_VIEW", "DISCARD_VIEW", "EXHAUST_VIEW", "SETTINGS", "INPUT_SETTINGS"}
 # Screens where the run memory's plan and route are shown above the state.
 DECISION_SCREENS = {"MAP", "CARD_REWARD", "SHOP_SCREEN", "REST", "BOSS_REWARD", "EVENT"}
 ROOMS = {"M": "Monster", "E": "Elite", "?": "Unknown", "$": "Shop", "R": "Rest", "T": "Treasure"}
@@ -185,7 +187,9 @@ class Session:
 
     def get_state(self):
         self.message = self.link.get()
-        return self.text()
+        result = []
+        self.close_overlays(result)
+        return "\n".join(result + [self.text()])
 
     def note(self, text, tag=None):
         self.memory.write(text, tag, game_state(self.message).get("floor"))
@@ -198,6 +202,7 @@ class Session:
         if not steps:
             return "ERR no actions given.\n" + self.text()
         done, result = [], []
+        self.close_overlays(result)
         self.drawn = []
         stop_reason = None
         try:
@@ -225,6 +230,24 @@ class Session:
         auto = self.safe_auto_handle(result)
         self.log(input=actions, executed=len(done), stop_reason=stop_reason, auto=auto)
         return self.compose(result, auto)
+
+    def overlay_open(self):
+        gs = game_state(self.message)
+        if not gs.get("is_screen_up"):
+            return None
+        name = gs.get("screen_name")
+        if name in OVERLAYS or (name == "MAP" and combat_of(self.message)):
+            return name
+        return None
+
+    def close_overlays(self, result):
+        """Someone opened a view in the game window: close it so the action can go through."""
+        for _ in range(3):
+            name = self.overlay_open()
+            if not name:
+                return
+            self.send("key CANCEL")
+            result.append(f"Closed the {name.replace('_', ' ').lower()} that was open in the game.")
 
     def safe_auto_handle(self, result):
         try:
