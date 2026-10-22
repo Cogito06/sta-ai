@@ -48,6 +48,8 @@ public class CommunicationMod implements PostInitializeSubscriber, PostUpdateSub
     private static final String GAME_START_OPTION = "runAtGameStart";
     private static final String VERBOSE_OPTION = "verbose";
     private static final String INITIALIZATION_TIMEOUT_OPTION = "maxInitializationTimeout";
+    // sts-ai: when set, the static game data is written to this path after the game initializes.
+    private static final String CATALOG_DUMP_OPTION = "catalogDumpPath";
     private static final String DEFAULT_COMMAND = "";
     private static final long DEFAULT_TIMEOUT = 10L;
     private static final boolean DEFAULT_VERBOSITY = true;
@@ -125,6 +127,10 @@ public class CommunicationMod implements PostInitializeSubscriber, PostUpdateSub
 
     public void receivePostInitialize() {
         setUpOptionsMenu();
+        String catalogPath = communicationConfig == null ? null : communicationConfig.getString(CATALOG_DUMP_OPTION);
+        if (catalogPath != null && !catalogPath.isEmpty()) {
+            CatalogDumper.dump(catalogPath);
+        }
     }
 
     public void receivePostUpdate() {
