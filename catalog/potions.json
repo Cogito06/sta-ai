@@ -1,0 +1,296 @@
+{
+ "Ambrosia": {
+  "id": "Ambrosia",
+  "name": "Ambrosia",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "Enter Divinity Stance."
+ },
+ "Ancient Potion": {
+  "id": "Ancient Potion",
+  "name": "Ancient Potion",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Gain 1 Artifact."
+ },
+ "AttackPotion": {
+  "id": "AttackPotion",
+  "name": "Attack Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Choose 1 of 3 random Attack cards to add to your hand, it costs 0 this turn."
+ },
+ "BlessingOfTheForge": {
+  "id": "BlessingOfTheForge",
+  "name": "Blessing of the Forge",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Upgrade all cards in your hand for the rest of combat."
+ },
+ "Block Potion": {
+  "id": "Block Potion",
+  "name": "Block Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Gain 12 Block."
+ },
+ "BloodPotion": {
+  "id": "BloodPotion",
+  "name": "Blood Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Heal for 20% of your Max HP."
+ },
+ "BottledMiracle": {
+  "id": "BottledMiracle",
+  "name": "Bottled Miracle",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Add 2 Miracles to your hand."
+ },
+ "ColorlessPotion": {
+  "id": "ColorlessPotion",
+  "name": "Colorless Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Choose 1 of 3 random Colorless cards to add to your hand, it costs 0 this turn."
+ },
+ "CultistPotion": {
+  "id": "CultistPotion",
+  "name": "Cultist Potion",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "Gain 1 Ritual."
+ },
+ "CunningPotion": {
+  "id": "CunningPotion",
+  "name": "Cunning Potion",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Add 3 Shiv+ to your hand."
+ },
+ "Dexterity Potion": {
+  "id": "Dexterity Potion",
+  "name": "Dexterity Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Gain 2 Dexterity."
+ },
+ "DistilledChaos": {
+  "id": "DistilledChaos",
+  "name": "Distilled Chaos",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Play the top 3 cards of your draw pile."
+ },
+ "DuplicationPotion": {
+  "id": "DuplicationPotion",
+  "name": "Duplication Potion",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "This turn, your next card is played twice."
+ },
+ "ElixirPotion": {
+  "id": "ElixirPotion",
+  "name": "Elixir",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Exhaust any number of cards in your hand."
+ },
+ "Energy Potion": {
+  "id": "Energy Potion",
+  "name": "Energy Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Gain 2 Energy."
+ },
+ "EntropicBrew": {
+  "id": "EntropicBrew",
+  "name": "Entropic Brew",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "Fill all your empty potion slots with random potions."
+ },
+ "EssenceOfDarkness": {
+  "id": "EssenceOfDarkness",
+  "name": "Essence Of Darkness",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "Channel 1 Dark for each orb slot."
+ },
+ "EssenceOfSteel": {
+  "id": "EssenceOfSteel",
+  "name": "Essence of Steel",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Gain 4 Plated Armor."
+ },
+ "Explosive Potion": {
+  "id": "Explosive Potion",
+  "name": "Explosive Potion",
+  "rarity": "COMMON",
+  "requires_target": true,
+  "text": "Deal 10 damage to ALL enemies."
+ },
+ "FairyPotion": {
+  "id": "FairyPotion",
+  "name": "Fairy in a Bottle",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "When you would die, heal to 30% of your Max HP instead and discard this potion."
+ },
+ "FearPotion": {
+  "id": "FearPotion",
+  "name": "Fear Potion",
+  "rarity": "COMMON",
+  "requires_target": true,
+  "text": "Apply 3 Vulnerable."
+ },
+ "Fire Potion": {
+  "id": "Fire Potion",
+  "name": "Fire Potion",
+  "rarity": "COMMON",
+  "requires_target": true,
+  "text": "Deal 20 damage."
+ },
+ "FocusPotion": {
+  "id": "FocusPotion",
+  "name": "Focus Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Gain 2 Focus."
+ },
+ "Fruit Juice": {
+  "id": "Fruit Juice",
+  "name": "Fruit Juice",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "Gain 5 Max HP."
+ },
+ "GamblersBrew": {
+  "id": "GamblersBrew",
+  "name": "Gambler's Brew",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Discard any number of cards then draw that many."
+ },
+ "GhostInAJar": {
+  "id": "GhostInAJar",
+  "name": "Ghost in a Jar",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "Gain 1 Intangible."
+ },
+ "HeartOfIron": {
+  "id": "HeartOfIron",
+  "name": "Heart of Iron",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "Gain 6 Metallicize."
+ },
+ "LiquidBronze": {
+  "id": "LiquidBronze",
+  "name": "Liquid Bronze",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Gain 3 Thorns."
+ },
+ "LiquidMemories": {
+  "id": "LiquidMemories",
+  "name": "Liquid Memories",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Choose a card in your discard pile and return it to your hand. It costs 0 this turn."
+ },
+ "Poison Potion": {
+  "id": "Poison Potion",
+  "name": "Poison Potion",
+  "rarity": "COMMON",
+  "requires_target": true,
+  "text": "Apply 6 Poison."
+ },
+ "PotionOfCapacity": {
+  "id": "PotionOfCapacity",
+  "name": "Potion Of Capacity",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Gain 2 Orb slots."
+ },
+ "PowerPotion": {
+  "id": "PowerPotion",
+  "name": "Power Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Choose 1 of 3 random Power cards to add to your hand, it costs 0 this turn."
+ },
+ "Regen Potion": {
+  "id": "Regen Potion",
+  "name": "Regen Potion",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Gain 5 Regen."
+ },
+ "SkillPotion": {
+  "id": "SkillPotion",
+  "name": "Skill Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Choose 1 of 3 random Skill cards to add to your hand, it costs 0 this turn."
+ },
+ "SmokeBomb": {
+  "id": "SmokeBomb",
+  "name": "Smoke Bomb",
+  "rarity": "RARE",
+  "requires_target": true,
+  "text": "Escape from a non-boss combat. Receive no rewards."
+ },
+ "SneckoOil": {
+  "id": "SneckoOil",
+  "name": "Snecko Oil",
+  "rarity": "RARE",
+  "requires_target": false,
+  "text": "Draw 5 cards. Randomize the cost of cards in your hand."
+ },
+ "SpeedPotion": {
+  "id": "SpeedPotion",
+  "name": "Speed Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Gain 5 Dexterity. At the end of your turn, lose 5 Dexterity."
+ },
+ "StancePotion": {
+  "id": "StancePotion",
+  "name": "Stance Potion",
+  "rarity": "UNCOMMON",
+  "requires_target": false,
+  "text": "Enter Calm or Wrath."
+ },
+ "SteroidPotion": {
+  "id": "SteroidPotion",
+  "name": "Flex Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Gain 5 Strength. At the end of your turn, lose 5 Strength."
+ },
+ "Strength Potion": {
+  "id": "Strength Potion",
+  "name": "Strength Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Gain 2 Strength."
+ },
+ "Swift Potion": {
+  "id": "Swift Potion",
+  "name": "Swift Potion",
+  "rarity": "COMMON",
+  "requires_target": false,
+  "text": "Draw 3 cards."
+ },
+ "Weak Potion": {
+  "id": "Weak Potion",
+  "name": "Weak Potion",
+  "rarity": "COMMON",
+  "requires_target": true,
+  "text": "Apply 3 Weak."
+ }
+}
