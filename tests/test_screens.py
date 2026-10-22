@@ -94,7 +94,7 @@ class ScreenTest(unittest.TestCase):
         text = render(message("HAND_SELECT", {"hand": hand, "selected": [], "max_cards": 1, "can_pick_zero": False},
                               commands=("choose",), choices=["strike", "defend"],
                               combat=combat_message(hand, [monster("Cultist", 40)])["game_state"]["combat_state"]))
-        self.assertIn("Choose up to 1 card(s) from your hand (at least 1)", text)
+        self.assertIn("== Choose 1 card(s) from your hand ==", text)
         self.assertIn(" 1 Defend 1", text)
 
     def test_card_reward_with_singing_bowl(self):

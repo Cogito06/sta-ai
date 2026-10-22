@@ -137,7 +137,7 @@ class StopTest(unittest.TestCase):
         session, game = session_for(combat_message(hand, [monster("Cultist", 50)]), SimpleCombat({"Armaments": armaments}))
         out = session.act("play a; play b 0")
         self.assertIn("a choice is needed", out)
-        self.assertIn("Choose up to 1 card", out)
+        self.assertIn("Choose 1 card", out)
 
 
 class RepeatTest(unittest.TestCase):
@@ -584,3 +584,37 @@ class OverlayTest(unittest.TestCase):
         out = session.act("play a 0")
         self.assertEqual(game.sent, ["key CANCEL", "play 1 0"])
         self.assertIn("Closed the master deck view", out)
+
+
+class ThirdRunFindingsTest(unittest.TestCase):
+    def test_awakened_one_phase_one_is_not_a_win(self):
+        def kill(msg, c, target):
+            msg["game_state"]["combat_state"]["monsters"][0].update(is_gone=True, half_dead=True, current_hp=0)
+        session, game = session_for(combat_message([card("Bash", cost=2, damage=8, magic_number=2), strike()],
+                                                   [monster("Awakened One", 5, 300)]), SimpleCombat({"Bash": kill}))
+        out = session.act("play a 0; play b 0")
+        self.assertNotIn("combat won", out)
+
+    def test_grid_that_closes_itself_waits_for_the_card(self):
+        grid = message("GRID", {"cards": [strike()], "selected_cards": [], "num_cards": 1, "any_number": False},
+                       commands=("choose",), choices=["strike"])
+        event = message("EVENT", {"event_name": "Duplicator", "options": [{"text": "[Leave]", "choice_index": 0}]},
+                        commands=("choose",), choices=["leave"])
+        session, game = session_for(grid, lambda m, c: event)
+        sent = []
+        original = game.send
+        game.send = lambda c: (sent.append(c), original(c))[1]
+        session.act("choose 0")
+        self.assertEqual(sent[:2], ["choose 0", "wait 150"])
+
+    def test_new_relic_from_an_event_is_named(self):
+        event = message("EVENT", {"event_name": "Tomb", "options": [{"text": "[Open]", "choice_index": 0},
+                                                                    {"text": "[Leave]", "choice_index": 1}]},
+                        commands=("choose",), choices=["open", "leave"])
+
+        def step(m, c):
+            m["game_state"]["relics"].append({"id": "Anchor", "name": "Anchor", "counter": -1})
+            m["game_state"]["choice_list"] = ["leave", "x"]
+            return m
+        session, game = session_for(event, step)
+        self.assertIn("New relic: Anchor - Start each combat with 10 Block.", session.act("choose 0"))

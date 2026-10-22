@@ -371,8 +371,9 @@ class Renderer:
 
     def hand_select(self, gs):
         ss = gs["screen_state"]
-        lines = self.enemies_brief(gs) + [f"== Choose up to {ss.get('max_cards')} card(s) from your hand"
-                 f"{'' if ss.get('can_pick_zero') else ' (at least 1)'} =="]
+        count = f"up to {ss.get('max_cards')}" if ss.get("can_pick_zero") or ss.get("max_cards", 1) > 1 else "1"
+        lines = self.enemies_brief(gs) + [f"== Choose {count} card(s) from your hand"
+                 f"{' (at least 1)' if not ss.get('can_pick_zero') and ss.get('max_cards', 1) > 1 else ''} =="]
         for i, card in enumerate(ss.get("hand", [])):
             lines.append(f" {i} " + self.card_line(card, ""))
         if ss.get("selected"):
@@ -410,7 +411,9 @@ class Renderer:
         names = {"SHOP_ROOM": "Shop room", "CHEST": "Treasure", "COMPLETE": "Room cleared", "NONE": "Waiting"}
         lines = [f"== {names.get(gs.get('screen_type'), gs.get('screen_type'))} =="]
         lines += [f" {i} {choice}" for i, choice in enumerate(gs.get("choice_list", []))]
-        exits = [c for c in commands if c in ("proceed", "confirm", "skip", "leave", "cancel", "return")]
+        # In the action language, confirm covers proceed and skip covers leave/cancel/return.
+        exits = sorted({"confirm" if c in ("proceed", "confirm") else "skip" for c in commands
+                        if c in ("proceed", "confirm", "skip", "leave", "cancel", "return")})
         if exits:
             lines.append("Or: " + ", ".join(exits))
         return lines

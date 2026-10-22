@@ -204,6 +204,7 @@ class Session:
         done, result = [], []
         self.close_overlays(result)
         self.drawn = []
+        relics_before = [r["id"] for r in game_state(self.message).get("relics", [])]
         stop_reason = None
         try:
             for i, step in enumerate(steps):
@@ -228,6 +229,9 @@ class Session:
         except ActionError as e:
             result.insert(0, f"ERR \"{step}\": {e}. Nothing after this was run.")
         auto = self.safe_auto_handle(result)
+        gained = [r for r in game_state(self.message).get("relics", []) if r["id"] not in relics_before]
+        if gained:
+            result.append("New relic: " + "; ".join(self.renderer.relic_line(r, always_text=True) for r in gained) + ".")
         self.log(input=actions, executed=len(done), stop_reason=stop_reason, auto=auto)
         return self.compose(result, auto)
 
@@ -287,6 +291,10 @@ class Session:
             screen = game_state(before).get("screen_type")
             picked = self.picked_card(before, args)
             self.choose(args)
+            if screen == "GRID" and game_state(self.message).get("screen_type") != "GRID":
+                # The grid closed by itself (e.g. Duplicator): cards are added to the deck by a short
+                # animation, and leaving the room before it ends loses them.
+                self.settle()
             if picked:
                 result.append(f"Selected {picked}.")
             if screen == "SHOP_SCREEN" and game_state(self.message).get("screen_type") == "SHOP_SCREEN":
@@ -306,6 +314,11 @@ class Session:
         else:
             raise ActionError(f"unknown action '{verb}'")
         return self.check_stop(before, stop_on, result)
+
+    def settle(self, frames=150):
+        reply = self.link.send(f"wait {frames}")
+        if "error" not in reply:
+            self.message = reply
 
     def picked_card(self, message, args):
         gs = game_state(message)
@@ -458,7 +471,7 @@ class Session:
                                for c in added]
                 if "draw" in stop_on:
                     return "new cards in hand, replan"
-            if all(m["is_gone"] for m in new["monsters"]):
+            if all(m["is_gone"] and not m.get("half_dead") for m in new["monsters"]):
                 return "combat won"
         return None
 
@@ -480,8 +493,12 @@ class Session:
                         break
                 if pick:
                     i, reward = pick
+                    potions_before = [p["id"] for p in gs.get("potions", [])]
                     self.send(f"choose {i}")
-                    done.append(self.describe_reward(reward))
+                    text = self.describe_reward(reward)
+                    if reward["reward_type"] == "POTION" and potions_before == [p["id"] for p in game_state(self.message).get("potions", [])]:
+                        text += " (not kept)"
+                    done.append(text)
                     continue
                 waiting = [r for r in rewards if not (r["reward_type"] == "CARD" and self.skipped_card_floor == gs["floor"])]
                 cards = [i for i, r in enumerate(rewards) if r["reward_type"] == "CARD" and r in waiting]
@@ -529,7 +546,13 @@ class Session:
                     else "removed" if ss.get("for_purge") else "selected"
                 names = self.renderer.pile(ss["selected_cards"])
                 self.send("confirm")
+                self.settle()
                 done.append(f"{purpose} {names}")
+                continue
+            if screen == "HAND_SELECT" and len(ss.get("selected", [])) == ss.get("max_cards") and "confirm" in self.available():
+                names = self.renderer.pile(ss["selected"])
+                self.send("confirm")
+                done.append(f"selected {names}")
                 continue
             if screen == "SHOP_SCREEN" and choices == [] and self.left_shop_floor != gs.get("floor"):
                 self.left_shop_floor = gs.get("floor")

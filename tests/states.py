@@ -140,7 +140,7 @@ class SimpleCombat:
                 cs["player"]["block"] += c["block"]
             if c["id"] in self.effects:
                 msg = self.effects[c["id"]](msg, c, target) or msg
-            if all(m["is_gone"] for m in cs["monsters"]):
+            if all(m["is_gone"] and not m.get("half_dead") for m in cs["monsters"]):
                 msg = message("COMBAT_REWARD", {"rewards": [{"reward_type": "GOLD", "gold": 15}]},
                               commands=("choose", "proceed", "state"), choices=["gold"])
             return msg
