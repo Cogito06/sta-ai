@@ -8,6 +8,7 @@ import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.characters.CharacterManager;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
+import com.megacrit.cardcrawl.helpers.ModHelper;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.SeedHelper;
 import com.megacrit.cardcrawl.helpers.TrialHelper;
@@ -66,6 +67,9 @@ public class CommandExecutor {
             case "start":
                 executeStartCommand(tokens);
                 return true;
+            case "continue":
+                executeContinueCommand();
+                return true;
             case "state":
                 executeStateCommand();
                 return false;
@@ -107,6 +111,9 @@ public class CommandExecutor {
         }
         if (isStartCommandAvailable()) {
             availableCommands.add("start");
+        }
+        if (isContinueCommandAvailable()) {
+            availableCommands.add("continue");
         }
         if (isInDungeon()) {
             availableCommands.add("key");
@@ -187,6 +194,23 @@ public class CommandExecutor {
 
     public static boolean isStartCommandAvailable() {
         return !isInDungeon() && CardCrawlGame.mainMenuScreen != null;
+    }
+
+    // sts-ai: resume the saved run, like the main menu's Continue button.
+    public static boolean isContinueCommandAvailable() {
+        return isStartCommandAvailable() && CardCrawlGame.characterManager != null
+                && CardCrawlGame.characterManager.anySaveFileExists();
+    }
+
+    private static void executeContinueCommand() {
+        CardCrawlGame.loadingSave = true;
+        CardCrawlGame.chosenCharacter = CardCrawlGame.characterManager.loadChosenCharacter().chosenClass;
+        CardCrawlGame.mainMenuScreen.isFadingOut = true;
+        CardCrawlGame.mainMenuScreen.fadeOutMusic();
+        Settings.isDailyRun = false;
+        Settings.isTrial = false;
+        ModHelper.setModsFalse();
+        GameStateListener.resetStateVariables();
     }
 
     private static void executeStateCommand() {

@@ -24,10 +24,20 @@ def session():
 
 
 @mcp.tool()
-def start_run(seed: str = "") -> str:
-    """Start a new Ironclad Ascension 0 run. Optional seed (letters and digits, as shown in game)."""
+def start_run(seed: str = "", overwrite: bool = False) -> str:
+    """Start a new Ironclad Ascension 0 run. Optional seed (letters and digits, as shown in game).
+    Refuses when a saved run exists, unless overwrite is true (that deletes the saved run)."""
     try:
-        return session().start_run(seed or None)
+        return session().start_run(seed or None, overwrite)
+    except ActionError as e:
+        return f"ERR {e}"
+
+
+@mcp.tool()
+def continue_run() -> str:
+    """Resume the saved run, like the main menu's Continue button."""
+    try:
+        return session().continue_run()
     except ActionError as e:
         return f"ERR {e}"
 

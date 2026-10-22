@@ -2,7 +2,7 @@ import json
 import pathlib
 import unittest
 
-from bridge.session import Session
+from bridge.session import ActionError, Session
 
 FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures" / "smoke"
 
@@ -58,3 +58,33 @@ class SessionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MenuLink:
+    """Main menu with a saved run."""
+
+    def __init__(self):
+        self.sent = []
+
+    def get(self):
+        return {"in_game": False, "ready_for_command": True, "available_commands": ["start", "continue", "state"]}
+
+    def send(self, command):
+        self.sent.append(command)
+        return {"error": "stop here"}
+
+
+class SavedRunTest(unittest.TestCase):
+    def test_start_refuses_to_overwrite_saved_run(self):
+        link = MenuLink()
+        session = Session(link)
+        with self.assertRaises(ActionError) as caught:
+            session.start_run()
+        self.assertIn("continue_run", str(caught.exception))
+        self.assertEqual(link.sent, [])
+
+    def test_continue_sends_continue(self):
+        link = MenuLink()
+        with self.assertRaises(ActionError):
+            Session(link).continue_run()
+        self.assertEqual(link.sent, ["continue"])

@@ -62,11 +62,17 @@ class Session:
 
     # ---------- logging ----------
 
-    def start_log(self, seed):
+    def start_log(self, seed, resume=False):
+        self.step = 0
+        if resume:
+            earlier = sorted((ROOT / "runs").glob(f"*_seed-{seed}"))
+            if earlier:
+                self.run_dir = earlier[-1]
+                self.step = len(list((self.run_dir / "raw").glob("*.json")))
+                return
         stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.run_dir = ROOT / "runs" / f"{stamp}_seed-{seed}"
         (self.run_dir / "raw").mkdir(parents=True, exist_ok=True)
-        self.step = 0
 
     def log(self, **entry):
         if self.run_dir is None:
@@ -107,9 +113,12 @@ class Session:
 
     # ---------- tools ----------
 
-    def start_run(self, seed=None):
+    def start_run(self, seed=None, overwrite=False):
         if self.message.get("in_game"):
             raise ActionError("A run is in progress. Finish it, or abandon it from the game menu first.")
+        if "continue" in self.available() and not overwrite:
+            raise ActionError("There is a saved run. Use continue_run to resume it, "
+                              "or start_run with overwrite to replace it.")
         command = "start ironclad 0" + (f" {seed}" if seed else "")
         self.renderer = Renderer(self.renderer.catalog, self.renderer.card_text_mode)
         self.send(command)
@@ -117,6 +126,18 @@ class Session:
         self.start_log(seed or seed_value)
         auto = self.auto_handle()
         self.log(input=f"start_run {seed or ''}".strip(), auto=auto)
+        return self.compose([], auto)
+
+    def continue_run(self):
+        if self.message.get("in_game"):
+            return self.get_state()
+        if "continue" not in self.available():
+            raise ActionError("There is no saved run to continue.")
+        self.renderer = Renderer(self.renderer.catalog, self.renderer.card_text_mode)
+        self.send("continue")
+        self.start_log(game_state(self.message).get("seed"), resume=True)
+        auto = self.auto_handle()
+        self.log(input="continue_run", auto=auto)
         return self.compose([], auto)
 
     def get_state(self):

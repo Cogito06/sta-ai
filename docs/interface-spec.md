@@ -51,7 +51,8 @@ Claude Code
 
 | 工具 | 参数 | 作用 |
 |---|---|---|
-| `start_run` | `seed=null` | 开新局（Ironclad A0）。不给种子就随机，返回种子 |
+| `start_run` | `seed=null, overwrite=false` | 开新局（Ironclad A0）。不给种子就随机，返回种子。有存档时拒绝，除非 overwrite=true |
+| `continue_run` | — | 继续存档里的那局（等同主菜单的 Continue），日志接着写进同种子的 run 目录 |
 | `get_state` | — | 当前状态文本 |
 | `act` | `actions: str` | 执行一个或一串动作。主力工具 |
 | `inspect` | `what: str` | 只读查询：`deck`、`draw`、`discard`、`exhaust`、`relics`、`potions`、`map`、`card <名>`、`relic <名>`、`power <名>`、`enemy <编号>`。不改变游戏 |
