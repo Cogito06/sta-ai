@@ -240,8 +240,8 @@
    "keywords": [
     "Exhaust"
    ],
-   "text": "Shuffle an *Omega into your draw pile. Exhaust.",
-   "template": "Shuffle an *Omega into your draw pile. Exhaust."
+   "text": "Shuffle an Omega into your draw pile. Exhaust.",
+   "template": "Shuffle an Omega into your draw pile. Exhaust."
   },
   "upgraded": {
    "name": "Beta+",
@@ -249,8 +249,8 @@
    "keywords": [
     "Exhaust"
    ],
-   "text": "Shuffle an *Omega into your draw pile. Exhaust.",
-   "template": "Shuffle an *Omega into your draw pile. Exhaust."
+   "text": "Shuffle an Omega into your draw pile. Exhaust.",
+   "template": "Shuffle an Omega into your draw pile. Exhaust."
   }
  },
  "Bite": {
@@ -1523,16 +1523,16 @@
    "cost": 2,
    "damage": 21,
    "keywords": [],
-   "text": "Deal 21 damage to ALL enemies. Add a *Burn into your discard pile.",
-   "template": "Deal {damage} damage to ALL enemies. Add a *Burn into your discard pile."
+   "text": "Deal 21 damage to ALL enemies. Add a Burn into your discard pile.",
+   "template": "Deal {damage} damage to ALL enemies. Add a Burn into your discard pile."
   },
   "upgraded": {
    "name": "Immolate+",
    "cost": 2,
    "damage": 28,
    "keywords": [],
-   "text": "Deal 28 damage to ALL enemies. Add a *Burn into your discard pile.",
-   "template": "Deal {damage} damage to ALL enemies. Add a *Burn into your discard pile."
+   "text": "Deal 28 damage to ALL enemies. Add a Burn into your discard pile.",
+   "template": "Deal {damage} damage to ALL enemies. Add a Burn into your discard pile."
   }
  },
  "Impatience": {
@@ -1835,16 +1835,16 @@
    "cost": -2,
    "magic_number": 6,
    "keywords": [],
-   "text": "Gain 6 *Plated *Armor.",
-   "template": "Gain {magic_number} *Plated *Armor."
+   "text": "Gain 6 Plated Armor.",
+   "template": "Gain {magic_number} Plated Armor."
   },
   "upgraded": {
    "name": "Live Forever+",
    "cost": -2,
    "magic_number": 8,
    "keywords": [],
-   "text": "Gain 8 *Plated *Armor.",
-   "template": "Gain {magic_number} *Plated *Armor."
+   "text": "Gain 8 Plated Armor.",
+   "template": "Gain {magic_number} Plated Armor."
   }
  },
  "Madness": {
@@ -2295,16 +2295,16 @@
    "cost": 1,
    "block": 15,
    "keywords": [],
-   "text": "Add 2 *Wounds into your hand. Gain 15 Block.",
-   "template": "Add 2 *Wounds into your hand. Gain {block} Block."
+   "text": "Add 2 Wounds into your hand. Gain 15 Block.",
+   "template": "Add 2 Wounds into your hand. Gain {block} Block."
   },
   "upgraded": {
    "name": "Power Through+",
    "cost": 1,
    "block": 20,
    "keywords": [],
-   "text": "Add 2 *Wounds into your hand. Gain 20 Block.",
-   "template": "Add 2 *Wounds into your hand. Gain {block} Block."
+   "text": "Add 2 Wounds into your hand. Gain 20 Block.",
+   "template": "Add 2 Wounds into your hand. Gain {block} Block."
   }
  },
  "Pride": {
@@ -2466,16 +2466,16 @@
    "cost": 0,
    "damage": 7,
    "keywords": [],
-   "text": "Deal 7 damage. Shuffle a *Dazed into your draw pile.",
-   "template": "Deal {damage} damage. Shuffle a *Dazed into your draw pile."
+   "text": "Deal 7 damage. Shuffle a Dazed into your draw pile.",
+   "template": "Deal {damage} damage. Shuffle a Dazed into your draw pile."
   },
   "upgraded": {
    "name": "Reckless Charge+",
    "cost": 0,
    "damage": 10,
    "keywords": [],
-   "text": "Deal 10 damage. Shuffle a *Dazed into your draw pile.",
-   "template": "Deal {damage} damage. Shuffle a *Dazed into your draw pile."
+   "text": "Deal 10 damage. Shuffle a Dazed into your draw pile.",
+   "template": "Deal {damage} damage. Shuffle a Dazed into your draw pile."
   }
  },
  "Regret": {
@@ -3310,16 +3310,16 @@
    "cost": 1,
    "damage": 12,
    "keywords": [],
-   "text": "Deal 12 damage. Shuffle a *Wound into your draw pile.",
-   "template": "Deal {damage} damage. Shuffle a *Wound into your draw pile."
+   "text": "Deal 12 damage. Shuffle a Wound into your draw pile.",
+   "template": "Deal {damage} damage. Shuffle a Wound into your draw pile."
   },
   "upgraded": {
    "name": "Wild Strike+",
    "cost": 1,
    "damage": 17,
    "keywords": [],
-   "text": "Deal 17 damage. Shuffle a *Wound into your draw pile.",
-   "template": "Deal {damage} damage. Shuffle a *Wound into your draw pile."
+   "text": "Deal 17 damage. Shuffle a Wound into your draw pile.",
+   "template": "Deal {damage} damage. Shuffle a Wound into your draw pile."
   }
  },
  "Wound": {

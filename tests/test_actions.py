@@ -258,7 +258,11 @@ class AutoTest(unittest.TestCase):
                    {"reward_type": "CARD"}]
 
         def step(m, command):
+            if m["game_state"]["screen_type"] != "COMBAT_REWARD":
+                return m
             rs = m["game_state"]["screen_state"]["rewards"]
+            if rs[int(command.split()[1])]["reward_type"] == "CARD":
+                return message("CARD_REWARD", {"cards": [strike()]}, commands=("choose", "skip"), choices=["strike"])
             i = int(command.split()[1])
             taken = rs.pop(i)
             if taken["reward_type"] == "POTION":
@@ -272,8 +276,7 @@ class AutoTest(unittest.TestCase):
                                choices=["gold", "potion", "relic", "card"])
         session.message = game.get()
         auto = session.auto_handle()
-        self.assertEqual(auto, ["+20 Gold", "potion Block Potion", "relic Anchor"])
-        self.assertEqual(game.message["game_state"]["screen_state"]["rewards"], [{"reward_type": "CARD"}])
+        self.assertEqual(auto[:3], ["+20 Gold", "potion Block Potion", "relic Anchor"])
 
     def test_potion_left_when_slots_full(self):
         full = [potion("Fire Potion", target=True), potion("Block Potion"), potion("Swift Potion")]
@@ -310,10 +313,20 @@ class AutoTest(unittest.TestCase):
         self.assertEqual(auto[:2], ["opened chest", "relic Anchor"])
         self.assertEqual(game.sent, ["choose 0", "choose 0", "proceed", "proceed"])
 
-    def test_shop_room_is_not_skipped(self):
+    def test_shop_room_opens_the_merchant(self):
         room = message("SHOP_ROOM", {}, commands=("choose", "proceed"), choices=["shop"], room_type="ShopRoom")
-        session, game = session_for(room, lambda m, c: {"error": "should not be called"})
-        self.assertEqual(session.auto_handle(), [])
+        shop = message("SHOP_SCREEN", {"cards": [], "relics": [], "potions": [], "purge_available": False},
+                       commands=("choose", "leave"), choices=[])
+        session, game = session_for(room, lambda m, c: shop)
+        self.assertEqual(session.auto_handle(), ["went to the merchant"])
+
+    def test_card_reward_is_opened(self):
+        rewards = message("COMBAT_REWARD", {"rewards": [{"reward_type": "CARD"}]}, commands=("choose", "proceed"),
+                          choices=["card"])
+        cards = message("CARD_REWARD", {"cards": [strike()]}, commands=("choose", "skip"), choices=["strike"])
+        session, game = session_for(rewards, lambda m, c: cards)
+        self.assertEqual(session.auto_handle(), ["opened card reward"])
+        self.assertEqual(game.sent, ["choose 0"])
 
 
 class InspectTest(unittest.TestCase):
@@ -347,3 +360,84 @@ class InspectTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlaytestFindingsTest(unittest.TestCase):
+    """Problems found while playing a whole act through the MCP tools."""
+
+    def test_hand_select_choose_then_confirm_runs_both(self):
+        hand = [strike(), defend()]
+        screen = message("HAND_SELECT", {"hand": hand, "selected": [], "max_cards": 1, "can_pick_zero": False},
+                         commands=("choose",), choices=["strike", "defend"],
+                         combat=combat_message(hand, [monster("Cultist", 50)])["game_state"]["combat_state"])
+
+        def step(m, command):
+            if command.startswith("choose"):
+                m["available_commands"] = ["choose", "confirm"]
+                return m
+            return combat_message([strike()], [monster("Cultist", 50)])
+        session, game = session_for(screen, step)
+        session.act("choose 1; confirm")
+        self.assertEqual(game.sent, ["choose 1", "confirm"])
+
+    def test_skip_on_rewards_uses_proceed(self):
+        first = message("COMBAT_REWARD", {"rewards": [{"reward_type": "CARD"}]}, commands=("choose", "proceed"),
+                        choices=["card"])
+        session, game = session_for(first, lambda m, c: message("MAP", {"next_nodes": [{"x": 1, "y": 2, "symbol": "M"},
+                                                                                        {"x": 2, "y": 2, "symbol": "$"}]},
+                                                                  commands=("choose",), choices=["x=1", "x=2"]))
+        self.assertNotIn("ERR", session.act("skip"))
+        self.assertEqual(game.sent, ["proceed"])
+
+    def test_leaving_the_shop_goes_back_to_the_map(self):
+        shop = message("SHOP_SCREEN", {"cards": [], "relics": [], "potions": [], "purge_available": False},
+                       commands=("choose", "leave"), choices=[])
+        room = message("SHOP_ROOM", {}, commands=("choose", "proceed"), choices=["shop"])
+        map_ = message("MAP", {"next_nodes": [{"x": 1, "y": 2, "symbol": "M"}, {"x": 2, "y": 2, "symbol": "$"}]},
+                       commands=("choose",), choices=["x=1", "x=2"])
+        replies = iter([room, map_])
+        session, game = session_for(shop, lambda m, c: next(replies))
+        session.act("skip")
+        self.assertEqual(game.sent, ["leave", "proceed"])
+
+    def test_visited_rooms_of_every_kind_are_marked(self):
+        nodes = [{"x": 1, "y": 0, "symbol": "M", "children": [{"x": 1, "y": 1}]},
+                 {"x": 2, "y": 0, "symbol": "$", "children": [{"x": 1, "y": 1}]},
+                 {"x": 1, "y": 1, "symbol": "?", "children": []}]
+        first = message("MAP", {"next_nodes": nodes[:2], "boss_available": False}, commands=("choose",),
+                        choices=["x=1", "x=2"], map=nodes)
+        session, game = session_for(first, lambda m, c: message("SHOP_ROOM", {}, commands=("choose", "proceed"),
+                                                                 choices=["shop"], map=nodes))
+        session.act("choose 1")
+        self.assertIn("2$*", session.inspect("map"))
+
+    def test_empty_act(self):
+        session, game = session_for(combat_message([strike()], [monster("Cultist", 50)]))
+        self.assertTrue(session.act("  ").startswith("ERR"))
+
+    def test_choice_screen_in_combat_shows_enemies(self):
+        hand = [strike()]
+        screen = message("HAND_SELECT", {"hand": hand, "selected": [], "max_cards": 1, "can_pick_zero": True},
+                         commands=("choose",), choices=["strike"],
+                         combat=combat_message(hand, [monster("Cultist", 50, intent="BUFF")])["game_state"]["combat_state"])
+        session, _ = session_for(screen)
+        self.assertIn(" 0 Cultist 50/50 | intent BUFF", session.text())
+
+    def test_reward_cards_have_no_unplayable_flag(self):
+        text = session_for(message("CARD_REWARD", {"cards": [card("Bash", cost=2, playable=False)]},
+                                   commands=("choose", "skip"), choices=["bash"]))[0].text()
+        self.assertNotIn("can't play", text)
+
+    def test_continue_while_in_game_starts_logging(self):
+        session, _ = session_for(combat_message([strike()], [monster("Cultist", 50)]))
+        import tempfile, pathlib
+        from bridge import session as session_module
+        with tempfile.TemporaryDirectory() as tmp:
+            old = session_module.ROOT
+            session_module.ROOT = pathlib.Path(tmp)
+            try:
+                session.continue_run()
+                self.assertIsNotNone(session.run_dir)
+                self.assertTrue(str(session.run_dir).endswith("_seed-42"))
+            finally:
+                session_module.ROOT = old

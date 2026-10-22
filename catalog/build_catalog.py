@@ -17,6 +17,7 @@ def clean_text(text):
     text = re.sub(r"\s*\bNL\b\s*", " ", text)
     text = re.sub(r"\[[RGBW]\]", "[E]", text)
     text = re.sub(r"#[a-z]", "", text)
+    text = re.sub(r"\*(?=\w)", "", text)
     return re.sub(r"\s+", " ", text).strip()
 
 

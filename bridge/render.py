@@ -64,6 +64,10 @@ class Renderer:
         return (f"F{gs['floor']} Act{gs['act']} | HP {gs['current_hp']}/{gs['max_hp']} | Gold {gs['gold']}"
                 f" | Potions: {' '.join(potions) if potions else 'none'}")
 
+    def visit(self, x, y):
+        if (x, y) not in self.path:
+            self.path.append((x, y))
+
     def first_time(self, key):
         if key in self.seen:
             return False
@@ -96,7 +100,7 @@ class Renderer:
         except (KeyError, IndexError):
             return version["text"]
 
-    def card_line(self, card, label, show_cost=True, always_text=False):
+    def card_line(self, card, label, show_cost=True, always_text=False, in_hand=False):
         name = self.catalog.card_name(card["id"], card.get("upgrades", 0), card.get("name"))
         parts = [f"{label} {name}" if label != "" else name]
         if show_cost:
@@ -106,8 +110,8 @@ class Renderer:
             flags.append("Ethereal")
         if card.get("exhausts"):
             flags.append("Exhaust")
-        if card.get("is_playable") is False:
-            flags.append("x")
+        if in_hand and card.get("is_playable") is False:
+            flags.append("can't play")
         if flags:
             parts.append(f"[{', '.join(flags)}]")
         key = ("card", card["id"], card.get("upgrades", 0))
@@ -182,7 +186,7 @@ class Renderer:
         lines += [self.monster_line(i, m) for i, m in enumerate(combat["monsters"])]
         labels = self.label_hand(combat)
         lines.append(f"Hand ({len(combat['hand'])}/10):")
-        lines += [" " + self.card_line(card, label) for card, label in zip(combat["hand"], labels)]
+        lines += [" " + self.card_line(card, label, in_hand=True) for card, label in zip(combat["hand"], labels)]
         lines.append(f"Draw {len(combat['draw_pile'])} | Discard {len(combat['discard_pile'])}"
                      f" | Exhaust {len(combat['exhaust_pile'])}")
         counters = [self.relic_line(r) for r in gs.get("relics", []) if r.get("counter", -1) >= 0]
@@ -225,8 +229,8 @@ class Renderer:
     def map_screen(self, gs, full=False):
         ss = gs["screen_state"]
         current = ss.get("current_node")
-        if current and current.get("y", -1) >= 0 and (current["x"], current["y"]) not in self.path:
-            self.path.append((current["x"], current["y"]))
+        if current and current.get("y", -1) >= 0:
+            self.visit(current["x"], current["y"])
         lines = [f"== Map Act{gs['act']} == Boss: {gs.get('act_boss', '?')}"]
         if full or self.first_time(("map", gs["act"])):
             lines.append(" Rows from the top (floor in act: column+room>next columns; * = visited):")
@@ -285,12 +289,18 @@ class Renderer:
         purge = None
         if ss.get("purge_available"):
             purge = tag(ss["purge_cost"])
+        if ss.get("cards"):
+            lines.append("Cards:")
         for item in ss.get("cards", []):
             i, price = tag(item["price"])
             lines.append(f"{i} [{price}] " + self.card_line(item, "", always_text=True))
+        if ss.get("relics"):
+            lines.append("Relics:")
         for item in ss.get("relics", []):
             i, price = tag(item["price"])
             lines.append(f"{i} [{price}] " + self.relic_line(item, always_text=True))
+        if ss.get("potions"):
+            lines.append("Potions:")
         for item in ss.get("potions", []):
             i, price = tag(item["price"])
             lines.append(f"{i} [{price}] {item['name']} - {self.catalog.potion_text(item['id']) or ''}")
@@ -320,7 +330,7 @@ class Renderer:
         purpose = ("upgrade" if ss.get("for_upgrade") else "transform" if ss.get("for_transform")
                    else "remove" if ss.get("for_purge") else "select")
         count = "any number of" if ss.get("any_number") else str(ss.get("num_cards", 1))
-        lines = [f"== Choose {count} card(s) to {purpose} =="]
+        lines = self.enemies_brief(gs) + [f"== Choose {count} card(s) to {purpose} =="]
         for i, card in enumerate(ss.get("cards", [])):
             lines.append(f" {i} " + self.card_line(card, "", show_cost=True))
         if ss.get("selected_cards"):
@@ -329,9 +339,17 @@ class Renderer:
             lines.append("Selection complete: confirm to finish")
         return lines
 
+    def enemies_brief(self, gs):
+        combat = gs.get("combat_state")
+        if not combat:
+            return []
+        player = combat["player"]
+        lines = [f"(in combat T{combat['turn']}: Energy {player['energy']}/{player.get('max_energy', '?')}, Block {player['block']})"]
+        return lines + [self.monster_line(i, m) for i, m in enumerate(combat["monsters"])]
+
     def hand_select(self, gs):
         ss = gs["screen_state"]
-        lines = [f"== Choose up to {ss.get('max_cards')} card(s) from your hand"
+        lines = self.enemies_brief(gs) + [f"== Choose up to {ss.get('max_cards')} card(s) from your hand"
                  f"{'' if ss.get('can_pick_zero') else ' (at least 1)'} =="]
         for i, card in enumerate(ss.get("hand", [])):
             lines.append(f" {i} " + self.card_line(card, ""))

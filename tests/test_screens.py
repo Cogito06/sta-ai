@@ -158,8 +158,8 @@ class CombatEdgeTest(unittest.TestCase):
                 card("Clash", cost=0, damage=14, playable=False)]
         text = render(combat_message(hand, [monster("Cultist", 48, intent="BUFF")]))
         self.assertIn(" a Whirlwind X - ", text)
-        self.assertIn(" b Wound - [x]", text)
-        self.assertIn(" c Clash 0 [x]", text)
+        self.assertIn(" b Wound - [can't play]", text)
+        self.assertIn(" c Clash 0 [can't play]", text)
 
     def test_searing_blow_plus_n(self):
         text = render(combat_message([card("Searing Blow", cost=2, upgrades=3, damage=24)], [monster("Cultist", 48)]))

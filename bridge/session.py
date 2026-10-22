@@ -71,6 +71,7 @@ class Session:
         self.renderer = renderer or Renderer()
         self.message = link.get()
         self.skipped_card_floor = None
+        self.left_shop_floor = None
         self.run_dir = None
         self.step = 0
 
@@ -136,8 +137,7 @@ class Session:
         command = "start ironclad 0" + (f" {seed}" if seed else "")
         self.renderer = Renderer(self.renderer.catalog, self.renderer.card_text_mode)
         self.send(command)
-        seed_value = game_state(self.message).get("seed")
-        self.start_log(seed or seed_value)
+        self.start_log(game_state(self.message).get("seed"))
         result = []
         auto = self.safe_auto_handle(result)
         self.log(input=f"start_run {seed or ''}".strip(), auto=auto)
@@ -145,7 +145,11 @@ class Session:
 
     def continue_run(self):
         if self.message.get("in_game"):
-            return self.get_state()
+            # Attaching to a run that is already open in the game: keep logging into its directory.
+            self.message = self.link.get()
+            if self.run_dir is None:
+                self.start_log(game_state(self.message).get("seed"), resume=True)
+            return self.text()
         if "continue" not in self.available():
             raise ActionError("There is no saved run to continue.")
         self.renderer = Renderer(self.renderer.catalog, self.renderer.card_text_mode)
@@ -167,6 +171,8 @@ class Session:
     def act(self, actions, stop_on=None):
         stop_on = set(stop_on) if stop_on else DEFAULT_STOP_ON
         steps = [s.strip() for s in re.split(r"[;\n]", actions) if s.strip()]
+        if not steps:
+            return "ERR no actions given.\n" + self.text()
         done, result = [], []
         stop_reason = None
         try:
@@ -234,7 +240,12 @@ class Session:
         elif verb == "skip":
             if game_state(before).get("screen_type") == "CARD_REWARD":
                 self.skipped_card_floor = game_state(before).get("floor")
-            self.send(self.pick_available("skip", "cancel", "leave", "return"))
+            self.send(self.pick_available("skip", "cancel", "leave", "return", "proceed"))
+            if game_state(before).get("screen_type") == "SHOP_SCREEN":
+                self.left_shop_floor = game_state(before).get("floor")
+            if game_state(before).get("screen_type") == "SHOP_SCREEN" and game_state(self.message).get("screen_type") == "SHOP_ROOM" \
+                    and "proceed" in self.available():
+                self.send("proceed")
         else:
             raise ActionError(f"unknown action '{verb}'")
         return self.check_stop(before, stop_on, result)
@@ -285,8 +296,16 @@ class Session:
             raise ActionError(f"choose 0 to {len(choices) - 1}" if choices else "nothing to choose here")
         if gs.get("screen_type") == "MAP" and gs["screen_state"].get("boss_available"):
             self.send("choose boss")
+        elif gs.get("screen_type") == "MAP":
+            self.remember_node(gs, int(args[0]))
+            self.send(f"choose {args[0]}")
         else:
             self.send(f"choose {args[0]}")
+
+    def remember_node(self, gs, i):
+        nodes = gs["screen_state"].get("next_nodes", [])
+        if i < len(nodes):
+            self.renderer.visit(nodes[i]["x"], nodes[i]["y"])
 
     def hand_index(self, ref):
         combat = combat_of(self.message)
@@ -359,7 +378,8 @@ class Session:
             return "combat won"
         if not new:
             return None
-        if "choice" in stop_on and gs.get("screen_type") in CHOICE_SCREENS:
+        if "choice" in stop_on and gs.get("screen_type") in CHOICE_SCREENS \
+                and gs.get("screen_type") != game_state(before).get("screen_type"):
             return "a choice is needed"
         if old:
             if "spawn" in stop_on and len(new["monsters"]) != len(old["monsters"]):
@@ -398,15 +418,26 @@ class Session:
                     done.append(self.describe_reward(reward))
                     continue
                 waiting = [r for r in rewards if not (r["reward_type"] == "CARD" and self.skipped_card_floor == gs["floor"])]
+                cards = [i for i, r in enumerate(rewards) if r["reward_type"] == "CARD" and r in waiting]
+                if cards:
+                    # Opening the card reward is not a choice yet: show the cards right away.
+                    self.send(f"choose {cards[0]}")
+                    done.append("opened card reward")
+                    continue
                 if not waiting and "proceed" in self.available():
                     self.send("proceed")
                     continue
                 return done
+            if screen == "SHOP_ROOM" and "choose" in self.available() and not self.left_shop_floor == gs.get("floor"):
+                self.send("choose 0")
+                done.append("went to the merchant")
+                continue
             if screen == "CHEST" and not gs["screen_state"].get("chest_open"):
                 self.send("choose 0")
                 done.append("opened chest")
                 continue
             if screen == "MAP" and len(gs["screen_state"].get("next_nodes", [])) == 1 and not gs["screen_state"].get("boss_available"):
+                self.remember_node(gs, 0)
                 self.send("choose 0")
                 done.append("only one path")
                 continue
