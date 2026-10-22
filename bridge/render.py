@@ -243,7 +243,8 @@ class Renderer:
             self.visit(current["x"], current["y"])
         lines = [f"== Map Act{gs['act']} == Boss: {gs.get('act_boss', '?')}"]
         if full or self.first_time(("map", gs["act"])):
-            lines.append(" Rows from the top (floor in act: column+room>next columns; * = visited):")
+            lines.append(" Rows from the top (floor in act: column+room>next columns; * = visited).")
+            lines.append(" Rooms: M monster, E elite, ? unknown, $ shop, R rest, T treasure.")
             lines += self.map_rows(gs)
         if ss.get("boss_available"):
             lines.append("Next: 0 Boss")
