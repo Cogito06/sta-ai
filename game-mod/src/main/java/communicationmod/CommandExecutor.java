@@ -70,6 +70,9 @@ public class CommandExecutor {
             case "continue":
                 executeContinueCommand();
                 return true;
+            case "dev":
+                executeDevCommand(command_tail.trim());
+                return true;
             case "state":
                 executeStateCommand();
                 return false;
@@ -114,6 +117,9 @@ public class CommandExecutor {
         }
         if (isContinueCommandAvailable()) {
             availableCommands.add("continue");
+        }
+        if (isInDungeon()) {
+            availableCommands.add("dev");
         }
         if (isInDungeon()) {
             availableCommands.add("key");
@@ -194,6 +200,17 @@ public class CommandExecutor {
 
     public static boolean isStartCommandAvailable() {
         return !isInDungeon() && CardCrawlGame.mainMenuScreen != null;
+    }
+
+    // sts-ai: run a BaseMod dev console command (event, fight, relic add, hand add, hp, gold...).
+    // For scripted tests only; the LLM's tools never send it.
+    private static void executeDevCommand(String text) throws InvalidCommandException {
+        if (text.isEmpty()) {
+            throw new InvalidCommandException("dev needs a console command, e.g. dev event Duplicator");
+        }
+        basemod.DevConsole.currentText = text;
+        basemod.DevConsole.execute();
+        basemod.DevConsole.currentText = "";
     }
 
     // sts-ai: resume the saved run, like the main menu's Continue button.
