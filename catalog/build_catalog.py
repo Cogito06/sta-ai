@@ -34,6 +34,10 @@ def card_version(values):
             version[key] = values[key]
     version["keywords"] = [k.title() for k in ("exhaust", "ethereal", "innate", "retain") if values[k]]
     version["text"] = card_text(values)
+    template = clean_text(values["raw_description"])
+    for marker, key in (("!D!", "{damage}"), ("!B!", "{block}"), ("!M!", "{magic_number}")):
+        template = template.replace(marker, key)
+    version["template"] = template
     return version
 
 
