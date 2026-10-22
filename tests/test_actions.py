@@ -296,7 +296,7 @@ class AutoTest(unittest.TestCase):
                       commands=("choose",), choices=["a", "b"])
         replies = iter([event, two])
         session, game = session_for(one_path, lambda m, c: next(replies))
-        self.assertEqual(session.auto_handle(), ["only one path", "event: talk"])
+        self.assertEqual(session.auto_handle(), ["only one path: F6 Monster", "event Neow: [Talk]"])
         self.assertEqual(game.sent, ["choose 0", "choose 0"])
 
     def test_chest_is_opened(self):
@@ -315,8 +315,8 @@ class AutoTest(unittest.TestCase):
 
     def test_shop_room_opens_the_merchant(self):
         room = message("SHOP_ROOM", {}, commands=("choose", "proceed"), choices=["shop"], room_type="ShopRoom")
-        shop = message("SHOP_SCREEN", {"cards": [], "relics": [], "potions": [], "purge_available": False},
-                       commands=("choose", "leave"), choices=[])
+        shop = message("SHOP_SCREEN", {"cards": [dict(card("Anger", cost=0), price=40)], "relics": [], "potions": [],
+                                       "purge_available": False}, commands=("choose", "leave"), choices=["anger"])
         session, game = session_for(room, lambda m, c: shop)
         self.assertEqual(session.auto_handle(), ["went to the merchant"])
 
@@ -441,3 +441,80 @@ class PlaytestFindingsTest(unittest.TestCase):
                 self.assertTrue(str(session.run_dir).endswith("_seed-42"))
             finally:
                 session_module.ROOT = old
+
+
+class SecondRunFindingsTest(unittest.TestCase):
+    """Problems found while winning a whole run through the MCP tools."""
+
+    def test_single_card_grid_confirms_itself_and_says_what(self):
+        grid = message("GRID", {"cards": [strike(), card("Demon Form", cost=3, type="POWER")], "selected_cards": [],
+                                "num_cards": 1, "any_number": False, "for_upgrade": True, "confirm_up": False},
+                       commands=("choose",), choices=["strike", "demon form"])
+
+        def step(m, command):
+            if command == "choose 1":
+                m["game_state"]["screen_state"].update(confirm_up=True, selected_cards=[m["game_state"]["screen_state"]["cards"][1]])
+                m["available_commands"] = ["confirm", "cancel"]
+                return m
+            return message("MAP", {"next_nodes": [{"x": 1, "y": 7, "symbol": "M"}, {"x": 2, "y": 7, "symbol": "E"}]},
+                           commands=("choose",), choices=["x=1", "x=2"])
+        session, game = session_for(grid, step)
+        out = session.act("choose 1")
+        self.assertEqual(game.sent, ["choose 1", "confirm"])
+        self.assertIn("Selected Demon Form.", out)
+        self.assertIn("upgraded Demon Form", out)
+
+    def test_boss_only_path_is_automatic(self):
+        first = message("MAP", {"next_nodes": [], "boss_available": True}, commands=("choose",), choices=["boss"])
+        session, game = session_for(first, lambda m, c: combat_message([strike()], [monster("Hexaghost", 250)]))
+        self.assertEqual(session.auto_handle(), ["only one path: Boss"])
+        self.assertEqual(game.sent, ["choose boss"])
+
+    def test_rest_site_with_one_option(self):
+        first = message("REST", {}, commands=("choose",), choices=["rest"])
+        session, game = session_for(first, lambda m, c: message("REST", {}, commands=("proceed",), choices=[]))
+        self.assertIn("rest site: rest (only option)", session.auto_handle())
+
+    def test_buying_stops_the_sequence(self):
+        shop = message("SHOP_SCREEN", {"cards": [dict(card("Anger", cost=0), price=40), dict(card("Inflame"), price=50)],
+                                       "relics": [], "potions": [], "purge_available": False},
+                       commands=("choose", "leave"), choices=["anger", "inflame"])
+
+        def step(m, command):
+            ss = m["game_state"]["screen_state"]
+            del ss["cards"][0]
+            m["game_state"]["choice_list"] = ["inflame"]
+            return m
+        session, game = session_for(shop, step)
+        out = session.act("choose 0; choose 1")
+        self.assertEqual(game.sent, ["choose 0"])
+        self.assertIn("Shop numbers have changed", out)
+
+    def test_map_marks_reset_each_act(self):
+        from bridge.render import Renderer
+        r = Renderer()
+        node = {"x": 1, "y": 0, "symbol": "M", "children": []}
+        r.render(message("MAP", {"current_node": {"x": 1, "y": 0}, "next_nodes": [], "boss_available": False}, map=[node], act=1))
+        text = r.render(message("MAP", {"current_node": {"x": 0, "y": -1}, "next_nodes": [], "boss_available": False}, map=[node], act=2))
+        self.assertNotIn("1M*", text)
+
+    def test_full_map_on_every_map_screen(self):
+        from bridge.render import Renderer
+        r = Renderer()
+        node = {"x": 1, "y": 0, "symbol": "M", "children": []}
+        msg = message("MAP", {"next_nodes": [node], "boss_available": False}, map=[node])
+        r.render(msg)
+        self.assertIn("1M>", r.render(msg))
+
+    def test_drawn_then_discarded_cards_are_not_reported(self):
+        def draw(msg, c, target):
+            msg["game_state"]["combat_state"]["hand"].append(card("Bash", cost=2, damage=8, magic_number=2))
+        hand = [card("Pommel Strike", damage=9, magic_number=1), strike()]
+        session, game = session_for(combat_message(hand, [monster("Cultist", 50)]), SimpleCombat({"Pommel Strike": draw}))
+        out = session.act("play a 0; end", stop_on=["choice"])
+        self.assertNotIn("New in hand", out)
+
+    def test_reviving_darkling(self):
+        from bridge.render import Renderer
+        line = Renderer().monster_line(1, monster("Darkling", 0, 50, gone=True, half_dead=True))
+        self.assertIn("reviving", line)

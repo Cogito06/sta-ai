@@ -216,16 +216,16 @@
    "cost": 0,
    "magic_number": 2,
    "keywords": [],
-   "text": "Gain 2 Vulnerable. At the start of your turn, gain [E].",
-   "template": "Gain {magic_number} Vulnerable. At the start of your turn, gain [E]."
+   "text": "Gain 2 Vulnerable. At the start of your turn, gain 1 Energy.",
+   "template": "Gain {magic_number} Vulnerable. At the start of your turn, gain 1 Energy."
   },
   "upgraded": {
    "name": "Berserk+",
    "cost": 0,
    "magic_number": 1,
    "keywords": [],
-   "text": "Gain 1 Vulnerable. At the start of your turn, gain [E].",
-   "template": "Gain {magic_number} Vulnerable. At the start of your turn, gain [E]."
+   "text": "Gain 1 Vulnerable. At the start of your turn, gain 1 Energy.",
+   "template": "Gain {magic_number} Vulnerable. At the start of your turn, gain 1 Energy."
   }
  },
  "Beta": {
@@ -312,16 +312,16 @@
    "cost": 4,
    "damage": 18,
    "keywords": [],
-   "text": "Costs 1 less [E] for each time you lose HP this combat. Deal 18 damage.",
-   "template": "Costs 1 less [E] for each time you lose HP this combat. Deal {damage} damage."
+   "text": "Costs 1 less Energy for each time you lose HP this combat. Deal 18 damage.",
+   "template": "Costs 1 less Energy for each time you lose HP this combat. Deal {damage} damage."
   },
   "upgraded": {
    "name": "Blood for Blood+",
    "cost": 3,
    "damage": 22,
    "keywords": [],
-   "text": "Costs 1 less [E] for each time you lose HP this combat. Deal 22 damage.",
-   "template": "Costs 1 less [E] for each time you lose HP this combat. Deal {damage} damage."
+   "text": "Costs 1 less Energy for each time you lose HP this combat. Deal 22 damage.",
+   "template": "Costs 1 less Energy for each time you lose HP this combat. Deal {damage} damage."
   }
  },
  "Bloodletting": {
@@ -335,16 +335,16 @@
    "cost": 0,
    "magic_number": 2,
    "keywords": [],
-   "text": "Lose 3 HP. Gain [E] [E].",
-   "template": "Lose 3 HP. Gain [E] [E]."
+   "text": "Lose 3 HP. Gain 2 Energy.",
+   "template": "Lose 3 HP. Gain 2 Energy."
   },
   "upgraded": {
    "name": "Bloodletting+",
    "cost": 0,
    "magic_number": 3,
    "keywords": [],
-   "text": "Lose 3 HP. Gain [E] [E] [E].",
-   "template": "Lose 3 HP. Gain [E] [E] [E]."
+   "text": "Lose 3 HP. Gain 3 Energy.",
+   "template": "Lose 3 HP. Gain 3 Energy."
   }
  },
  "Bludgeon": {
@@ -929,16 +929,16 @@
    "cost": 1,
    "damage": 5,
    "keywords": [],
-   "text": "Deal 5 damage. If the enemy has Vulnerable, gain [E] and draw 1 card.",
-   "template": "Deal {damage} damage. If the enemy has Vulnerable, gain [E] and draw 1 card."
+   "text": "Deal 5 damage. If the enemy has Vulnerable, gain 1 Energy and draw 1 card.",
+   "template": "Deal {damage} damage. If the enemy has Vulnerable, gain 1 Energy and draw 1 card."
   },
   "upgraded": {
    "name": "Dropkick+",
    "cost": 1,
    "damage": 8,
    "keywords": [],
-   "text": "Deal 8 damage. If the enemy has Vulnerable, gain [E] and draw 1 card.",
-   "template": "Deal {damage} damage. If the enemy has Vulnerable, gain [E] and draw 1 card."
+   "text": "Deal 8 damage. If the enemy has Vulnerable, gain 1 Energy and draw 1 card.",
+   "template": "Deal {damage} damage. If the enemy has Vulnerable, gain 1 Energy and draw 1 card."
   }
  },
  "Dual Wield": {
@@ -2035,8 +2035,8 @@
     "Exhaust",
     "Retain"
    ],
-   "text": "Retain. Gain [E]. Exhaust.",
-   "template": "Retain. Gain [E]. Exhaust."
+   "text": "Retain. Gain 1 Energy. Exhaust.",
+   "template": "Retain. Gain 1 Energy. Exhaust."
   },
   "upgraded": {
    "name": "Miracle+",
@@ -2045,8 +2045,8 @@
     "Exhaust",
     "Retain"
    ],
-   "text": "Retain. Gain [E] [E]. Exhaust.",
-   "template": "Retain. Gain [E] [E]. Exhaust."
+   "text": "Retain. Gain 2 Energy. Exhaust.",
+   "template": "Retain. Gain 2 Energy. Exhaust."
   }
  },
  "Necronomicurse": {
@@ -2090,8 +2090,8 @@
    "keywords": [
     "Exhaust"
    ],
-   "text": "Lose 6 HP. Gain [E] [E]. Draw 3 cards. Exhaust.",
-   "template": "Lose 6 HP. Gain [E] [E]. Draw {magic_number} cards. Exhaust."
+   "text": "Lose 6 HP. Gain 2 Energy. Draw 3 cards. Exhaust.",
+   "template": "Lose 6 HP. Gain 2 Energy. Draw {magic_number} cards. Exhaust."
   },
   "upgraded": {
    "name": "Offering+",
@@ -2100,8 +2100,8 @@
    "keywords": [
     "Exhaust"
    ],
-   "text": "Lose 6 HP. Gain [E] [E]. Draw 5 cards. Exhaust.",
-   "template": "Lose 6 HP. Gain [E] [E]. Draw {magic_number} cards. Exhaust."
+   "text": "Lose 6 HP. Gain 2 Energy. Draw 5 cards. Exhaust.",
+   "template": "Lose 6 HP. Gain 2 Energy. Draw {magic_number} cards. Exhaust."
   }
  },
  "Omega": {
@@ -2700,8 +2700,8 @@
    "keywords": [
     "Exhaust"
    ],
-   "text": "Gain [E] [E]. Exhaust.",
-   "template": "Gain [E] [E]. Exhaust."
+   "text": "Gain 2 Energy. Exhaust.",
+   "template": "Gain 2 Energy. Exhaust."
   },
   "upgraded": {
    "name": "Seeing Red+",
@@ -2709,8 +2709,8 @@
    "keywords": [
     "Exhaust"
    ],
-   "text": "Gain [E] [E]. Exhaust.",
-   "template": "Gain [E] [E]. Exhaust."
+   "text": "Gain 2 Energy. Exhaust.",
+   "template": "Gain 2 Energy. Exhaust."
   }
  },
  "Sentinel": {
@@ -2724,16 +2724,16 @@
    "cost": 1,
    "block": 5,
    "keywords": [],
-   "text": "Gain 5 Block. If this card is Exhausted, gain [E] [E].",
-   "template": "Gain {block} Block. If this card is Exhausted, gain [E] [E]."
+   "text": "Gain 5 Block. If this card is Exhausted, gain 2 Energy.",
+   "template": "Gain {block} Block. If this card is Exhausted, gain 2 Energy."
   },
   "upgraded": {
    "name": "Sentinel+",
    "cost": 1,
    "block": 8,
    "keywords": [],
-   "text": "Gain 8 Block. If this card is Exhausted, gain [E] [E] [E].",
-   "template": "Gain {block} Block. If this card is Exhausted, gain [E] [E] [E]."
+   "text": "Gain 8 Block. If this card is Exhausted, gain 3 Energy.",
+   "template": "Gain {block} Block. If this card is Exhausted, gain 3 Energy."
   }
  },
  "Sever Soul": {

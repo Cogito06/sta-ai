@@ -9,6 +9,7 @@ import json
 import pathlib
 import re
 import socket
+import time
 
 from bridge.render import Renderer
 
@@ -18,6 +19,7 @@ DEFAULT_STOP_ON = {"draw", "choice", "spawn"}
 # Cards that cost HP; `repeat` never plays them unless they are named.
 SELF_DAMAGE = {"Hemokinesis", "Offering", "Bloodletting", "J.A.X.", "Combust", "Brutality"}
 CHOICE_SCREENS = {"HAND_SELECT", "GRID", "CARD_REWARD"}
+ROOMS = {"M": "Monster", "E": "Elite", "?": "Unknown", "$": "Shop", "R": "Rest", "T": "Treasure"}
 
 
 class ActionError(Exception):
@@ -150,6 +152,12 @@ class Session:
             if self.run_dir is None:
                 self.start_log(game_state(self.message).get("seed"), resume=True)
             return self.text()
+        for _ in range(15):
+            # Right after the game starts the main menu can take a few seconds to offer Continue.
+            if "continue" in self.available() or self.message.get("in_game"):
+                break
+            time.sleep(1)
+            self.message = self.link.get()
         if "continue" not in self.available():
             raise ActionError("There is no saved run to continue.")
         self.renderer = Renderer(self.renderer.catalog, self.renderer.card_text_mode)
@@ -174,6 +182,7 @@ class Session:
         if not steps:
             return "ERR no actions given.\n" + self.text()
         done, result = [], []
+        self.drawn = []
         stop_reason = None
         try:
             for i, step in enumerate(steps):
@@ -210,8 +219,10 @@ class Session:
 
     def compose(self, result, auto):
         # One line for all cards drawn during the sequence instead of one per play.
-        drawn = [line[len("New in hand: "):-1] for line in result if line.startswith("New in hand: ")]
-        lines = [line for line in result if not line.startswith("New in hand: ")]
+        # Cards drawn during the sequence that are still in hand (not the ones already played or discarded).
+        hand = {c["uuid"] for c in (combat_of(self.message) or {}).get("hand", [])}
+        drawn = [name for uuid, name in getattr(self, "drawn", []) if uuid in hand]
+        lines = list(result)
         if drawn:
             lines.insert(1 if lines else 0, "New in hand: " + ", ".join(drawn) + ".")
         if auto:
@@ -234,7 +245,14 @@ class Session:
         elif verb == "drop":
             self.send(f"potion discard {self.potion_slot(args)}")
         elif verb == "choose":
+            screen = game_state(before).get("screen_type")
+            picked = self.picked_card(before, args)
             self.choose(args)
+            if picked:
+                result.append(f"Selected {picked}.")
+            if screen == "SHOP_SCREEN" and game_state(self.message).get("screen_type") == "SHOP_SCREEN":
+                result.append("Bought. Shop numbers have changed.")
+                return "shop numbers changed"
         elif verb == "confirm":
             self.send(self.pick_available("confirm", "proceed"))
         elif verb == "skip":
@@ -249,6 +267,15 @@ class Session:
         else:
             raise ActionError(f"unknown action '{verb}'")
         return self.check_stop(before, stop_on, result)
+
+    def picked_card(self, message, args):
+        gs = game_state(message)
+        ss = gs.get("screen_state") or {}
+        cards = ss.get("cards") if gs.get("screen_type") == "GRID" else ss.get("hand") if gs.get("screen_type") == "HAND_SELECT" else None
+        if not cards or not args or not args[0].isdigit() or int(args[0]) >= len(cards):
+            return None
+        c = cards[int(args[0])]
+        return self.renderer.catalog.card_name(c["id"], c.get("upgrades", 0), c.get("name"))
 
     def potion_slot(self, args):
         potions = game_state(self.message).get("potions", [])
@@ -305,7 +332,7 @@ class Session:
     def remember_node(self, gs, i):
         nodes = gs["screen_state"].get("next_nodes", [])
         if i < len(nodes):
-            self.renderer.visit(nodes[i]["x"], nodes[i]["y"])
+            self.renderer.visit(nodes[i]["x"], nodes[i]["y"], gs["act"])
 
     def hand_index(self, ref):
         combat = combat_of(self.message)
@@ -388,8 +415,8 @@ class Session:
             old_ids = {c["uuid"] for c in old["hand"]}
             added = [c for c in new["hand"] if c["uuid"] not in old_ids]
             if added:
-                names = ", ".join(self.renderer.catalog.card_name(c["id"], c.get("upgrades", 0), c.get("name")) for c in added)
-                result.append(f"New in hand: {names}.")
+                self.drawn += [(c["uuid"], self.renderer.catalog.card_name(c["id"], c.get("upgrades", 0), c.get("name")))
+                               for c in added]
                 if "draw" in stop_on:
                     return "new cards in hand, replan"
             if all(m["is_gone"] for m in new["monsters"]):
@@ -436,15 +463,39 @@ class Session:
                 self.send("choose 0")
                 done.append("opened chest")
                 continue
-            if screen == "MAP" and len(gs["screen_state"].get("next_nodes", [])) == 1 and not gs["screen_state"].get("boss_available"):
+            ss = gs.get("screen_state") or {}
+            if screen == "MAP" and ss.get("boss_available") and gs.get("choice_list") == ["boss"]:
+                self.send("choose boss")
+                done.append("only one path: Boss")
+                continue
+            if screen == "MAP" and len(ss.get("next_nodes", [])) == 1 and not ss.get("boss_available"):
+                node = ss["next_nodes"][0]
                 self.remember_node(gs, 0)
                 self.send("choose 0")
-                done.append("only one path")
+                done.append(f"only one path: F{gs['floor'] + 1} {ROOMS.get(node['symbol'], node['symbol'])}")
                 continue
             choices = gs.get("choice_list")
             if screen == "EVENT" and choices and len(choices) == 1:
+                option = next((o["text"] for o in ss.get("options", []) if "choice_index" in o), choices[0])
                 self.send("choose 0")
-                done.append(f"event: {choices[0]}")
+                done.append(f"event {ss.get('event_name', '')}: {option}".replace("event : ", "event: "))
+                continue
+            if screen == "REST" and choices and len(choices) == 1:
+                self.send("choose 0")
+                done.append(f"rest site: {choices[0]} (only option)")
+                continue
+            if screen == "GRID" and ss.get("confirm_up") and not ss.get("any_number") \
+                    and len(ss.get("selected_cards", [])) == ss.get("num_cards", 1) and "confirm" in self.available():
+                purpose = "upgraded" if ss.get("for_upgrade") else "transformed" if ss.get("for_transform") \
+                    else "removed" if ss.get("for_purge") else "selected"
+                names = self.renderer.pile(ss["selected_cards"])
+                self.send("confirm")
+                done.append(f"{purpose} {names}")
+                continue
+            if screen == "SHOP_SCREEN" and choices == [] and self.left_shop_floor != gs.get("floor"):
+                self.left_shop_floor = gs.get("floor")
+                self.send(self.pick_available("leave", "cancel", "return", "skip"))
+                done.append("left the shop (nothing affordable)")
                 continue
             if screen not in ("GAME_OVER", "SHOP_SCREEN", "GRID", "HAND_SELECT") and not combat_of(self.message) \
                     and "proceed" in self.available() and "choose" not in self.available():

@@ -15,8 +15,11 @@ OTHER_CLASS_RELIC_COLORS = {"GREEN", "BLUE", "PURPLE"}
 
 def clean_text(text):
     text = re.sub(r"\s*\bNL\b\s*", " ", text)
-    text = re.sub(r"\[[RGBW]\]", "[E]", text)
+    # Energy icons: "[R] [R]" -> "2 Energy".
+    text = re.sub(r"(?:\[[RGBWE]\]\s*)+", lambda m: f"{m.group(0).count('[')} Energy ", text)
     text = re.sub(r"#[a-z]", "", text)
+    text = text.replace("less 1 Energy", "less Energy")
+    text = re.sub(r"\s+([.,])", r"\1", text)
     text = re.sub(r"\*(?=\w)", "", text)
     return re.sub(r"\s+", " ", text).strip()
 

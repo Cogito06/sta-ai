@@ -194,7 +194,7 @@ class CombatEdgeTest(unittest.TestCase):
         msg = combat_message([card("Strike_R", damage=6)], [monster("Cultist", 48)],
                              relics=[{"id": "Pen Nib", "name": "Pen Nib", "counter": 9},
                                      {"id": "Burning Blood", "name": "Burning Blood", "counter": -1}])
-        self.assertIn("Relics: Pen Nib (9)", render(msg))
+        self.assertIn("Relic counters: Pen Nib (9)", render(msg))
 
 
 if __name__ == "__main__":

@@ -68,7 +68,11 @@ class Renderer:
         return (f"F{gs['floor']} Act{gs['act']} | HP {gs['current_hp']}/{gs['max_hp']} | Gold {gs['gold']}"
                 f" | Potions: {' '.join(potions) if potions else 'none'}")
 
-    def visit(self, x, y):
+    def visit(self, x, y, act=None):
+        if act is not None and act != getattr(self, "path_act", act):
+            self.path = []
+        if act is not None:
+            self.path_act = act
         if (x, y) not in self.path:
             self.path.append((x, y))
 
@@ -166,10 +170,10 @@ class Renderer:
 
     def monster_line(self, i, monster):
         name = f" {i} {monster['name']}"
-        if monster.get("is_gone"):
-            return f"{name} (dead)"
         if monster.get("half_dead"):
             return f"{name} (reviving) {monster['current_hp']}/{monster['max_hp']}"
+        if monster.get("is_gone"):
+            return f"{name} (dead)"
         line = f"{name} {monster['current_hp']}/{monster['max_hp']}"
         if monster.get("block"):
             line += f" Blk {monster['block']}"
@@ -201,7 +205,7 @@ class Renderer:
                      f" | Exhaust {len(combat['exhaust_pile'])}")
         counters = [self.relic_line(r) for r in gs.get("relics", []) if r.get("counter", -1) >= 0]
         if counters:
-            lines.append("Relics: " + "; ".join(counters))
+            lines.append("Relic counters: " + "; ".join(counters))
         return lines
 
     def pile(self, cards):
@@ -236,16 +240,18 @@ class Renderer:
             rows.setdefault(y, []).append(f"{x}{node['symbol']}{mark}>{children}")
         return [f"  {y + 1:>2}: " + "  ".join(rows[y]) for y in sorted(rows, reverse=True)]
 
-    def map_screen(self, gs, full=False):
+    def map_screen(self, gs):
         ss = gs["screen_state"]
         current = ss.get("current_node")
+        if getattr(self, "path_act", gs["act"]) != gs["act"]:
+            self.path = []
+        self.path_act = gs["act"]
         if current and current.get("y", -1) >= 0:
-            self.visit(current["x"], current["y"])
-        lines = [f"== Map Act{gs['act']} == Boss: {gs.get('act_boss', '?')}"]
-        if full or self.first_time(("map", gs["act"])):
-            lines.append(" Rows from the top (floor in act: column+room>next columns; * = visited).")
-            lines.append(" Rooms: M monster, E elite, ? unknown, $ shop, R rest, T treasure.")
-            lines += self.map_rows(gs)
+            self.visit(current["x"], current["y"], gs["act"])
+        lines = [f"== Map Act{gs['act']} == Boss: {gs.get('act_boss', '?')}",
+                 " Rows from the top (floor in act: column+room>next columns; * = visited).",
+                 " Rooms: M monster, E elite, ? unknown, $ shop, R rest, T treasure."]
+        lines += self.map_rows(gs)
         if ss.get("boss_available"):
             lines.append("Next: 0 Boss")
         else:

@@ -18,14 +18,14 @@
   "name": "Ancient Tea Set",
   "color": "ANY",
   "tier": "COMMON",
-  "text": "Whenever you enter a Rest Site, start the next combat with [E] [E] ."
+  "text": "Whenever you enter a Rest Site, start the next combat with 2 Energy."
  },
  "Art of War": {
   "id": "Art of War",
   "name": "Art of War",
   "color": "ANY",
   "tier": "COMMON",
-  "text": "If you do not play any Attacks during your turn, gain an additional [E] next turn."
+  "text": "If you do not play any Attacks during your turn, gain an additional 1 Energy next turn."
  },
  "Astrolabe": {
   "id": "Astrolabe",
@@ -144,7 +144,7 @@
   "name": "Busted Crown",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. Future card rewards have 2 less cards to choose from."
+  "text": "Gain 1 Energy at the start of your turn. Future card rewards have 2 less cards to choose from."
  },
  "Calipers": {
   "id": "Calipers",
@@ -221,7 +221,7 @@
   "name": "Coffee Dripper",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. You can no longer Rest at Rest Sites."
+  "text": "Gain 1 Energy at the start of your turn. You can no longer Rest at Rest Sites."
  },
  "CultistMask": {
   "id": "CultistMask",
@@ -235,7 +235,7 @@
   "name": "Cursed Key",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. Whenever you open a non-Boss chest, obtain a Curse."
+  "text": "Gain 1 Energy at the start of your turn. Whenever you open a non-Boss chest, obtain a Curse."
  },
  "Darkstone Periapt": {
   "id": "Darkstone Periapt",
@@ -277,7 +277,7 @@
   "name": "Ectoplasm",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. You can no longer gain Gold."
+  "text": "Gain 1 Energy at the start of your turn. You can no longer gain Gold."
  },
  "Empty Cage": {
   "id": "Empty Cage",
@@ -333,7 +333,7 @@
   "name": "Fusion Hammer",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. You can no longer Smith at Rest Sites."
+  "text": "Gain 1 Energy at the start of your turn. You can no longer Smith at Rest Sites."
  },
  "Gambling Chip": {
   "id": "Gambling Chip",
@@ -368,7 +368,7 @@
   "name": "Gremlin Horn",
   "color": "ANY",
   "tier": "UNCOMMON",
-  "text": "Whenever an enemy dies, gain [E] and draw 1 card."
+  "text": "Whenever an enemy dies, gain 1 Energy and draw 1 card."
  },
  "GremlinMask": {
   "id": "GremlinMask",
@@ -389,7 +389,7 @@
   "name": "Happy Flower",
   "color": "ANY",
   "tier": "COMMON",
-  "text": "Every 3 turns, gain [E] ."
+  "text": "Every 3 turns, gain 1 Energy."
  },
  "HornCleat": {
   "id": "HornCleat",
@@ -438,7 +438,7 @@
   "name": "Lantern",
   "color": "ANY",
   "tier": "COMMON",
-  "text": "Start each combat with an additional [E] ."
+  "text": "Start each combat with an additional 1 Energy."
  },
  "Lee's Waffle": {
   "id": "Lee's Waffle",
@@ -480,7 +480,7 @@
   "name": "Mark of Pain",
   "color": "RED",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. At the start of combat, shuffle 2 Wounds into your draw pile."
+  "text": "Gain 1 Energy at the start of your turn. At the start of combat, shuffle 2 Wounds into your draw pile."
  },
  "Mark of the Bloom": {
   "id": "Mark of the Bloom",
@@ -599,7 +599,7 @@
   "name": "Nunchaku",
   "color": "ANY",
   "tier": "COMMON",
-  "text": "Every time you play 10 Attacks, gain [E] ."
+  "text": "Every time you play 10 Attacks, gain 1 Energy."
  },
  "Odd Mushroom": {
   "id": "Odd Mushroom",
@@ -704,7 +704,7 @@
   "name": "Philosopher's Stone",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. ALL enemies start combat with 1 Strength."
+  "text": "Gain 1 Energy at the start of your turn. ALL enemies start combat with 1 Strength."
  },
  "Pocketwatch": {
   "id": "Pocketwatch",
@@ -781,7 +781,7 @@
   "name": "Runic Dome",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. You can no longer see enemy intents."
+  "text": "Gain 1 Energy at the start of your turn. You can no longer see enemy intents."
  },
  "Runic Pyramid": {
   "id": "Runic Pyramid",
@@ -830,7 +830,7 @@
   "name": "Slaver's Collar",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "During Boss and Elite combats, gain [E] at the start of your turn."
+  "text": "During Boss and Elite combats, gain 1 Energy at the start of your turn."
  },
  "Sling": {
   "id": "Sling",
@@ -858,7 +858,7 @@
   "name": "Sozu",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. You can no longer obtain potions."
+  "text": "Gain 1 Energy at the start of your turn. You can no longer obtain potions."
  },
  "Spirit Poop": {
   "id": "Spirit Poop",
@@ -907,7 +907,7 @@
   "name": "Sundial",
   "color": "ANY",
   "tier": "UNCOMMON",
-  "text": "Every 3 times you shuffle your draw pile, gain [E] [E] ."
+  "text": "Every 3 times you shuffle your draw pile, gain 2 Energy."
  },
  "The Courier": {
   "id": "The Courier",
@@ -1005,7 +1005,7 @@
   "name": "Velvet Choker",
   "color": "ANY",
   "tier": "BOSS",
-  "text": "Gain [E] at the start of your turn. You cannot play more than 6 cards per turn."
+  "text": "Gain 1 Energy at the start of your turn. You cannot play more than 6 cards per turn."
  },
  "War Paint": {
   "id": "War Paint",
