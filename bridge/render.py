@@ -240,6 +240,11 @@ class Renderer:
             rows.setdefault(y, []).append(f"{x}{node['symbol']}{mark}>{children}")
         return [f"  {y + 1:>2}: " + "  ".join(rows[y]) for y in sorted(rows, reverse=True)]
 
+    @staticmethod
+    def map_legend():
+        return [" Rows from the top (floor in act: column+room>next columns; * = visited).",
+                " Rooms: M monster, E elite, ? unknown, $ shop, R rest, T treasure."]
+
     def map_screen(self, gs):
         ss = gs["screen_state"]
         current = ss.get("current_node")
@@ -248,10 +253,10 @@ class Renderer:
         self.path_act = gs["act"]
         if current and current.get("y", -1) >= 0:
             self.visit(current["x"], current["y"], gs["act"])
-        lines = [f"== Map Act{gs['act']} == Boss: {gs.get('act_boss', '?')}",
-                 " Rows from the top (floor in act: column+room>next columns; * = visited).",
-                 " Rooms: M monster, E elite, ? unknown, $ shop, R rest, T treasure."]
-        lines += self.map_rows(gs)
+        lines = [f"== Map Act{gs['act']} == Boss: {gs.get('act_boss', '?')}"]
+        # The whole map once per act; after that it is one inspect away, like a human opening it.
+        if self.first_time(("map", gs["act"])):
+            lines += self.map_legend() + self.map_rows(gs)
         if ss.get("boss_available"):
             lines.append("Next: 0 Boss")
         else:

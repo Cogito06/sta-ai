@@ -498,13 +498,13 @@ class SecondRunFindingsTest(unittest.TestCase):
         text = r.render(message("MAP", {"current_node": {"x": 0, "y": -1}, "next_nodes": [], "boss_available": False}, map=[node], act=2))
         self.assertNotIn("1M*", text)
 
-    def test_full_map_on_every_map_screen(self):
-        from bridge.render import Renderer
-        r = Renderer()
+    def test_full_map_once_per_act_then_on_request(self):
         node = {"x": 1, "y": 0, "symbol": "M", "children": []}
-        msg = message("MAP", {"next_nodes": [node], "boss_available": False}, map=[node])
-        r.render(msg)
-        self.assertIn("1M>", r.render(msg))
+        msg = message("MAP", {"next_nodes": [node, dict(node, x=2)], "boss_available": False}, map=[node])
+        session, _ = session_for(msg)
+        self.assertIn("1M>", session.text())
+        self.assertNotIn("1M>", session.text())
+        self.assertIn("1M>", session.inspect("map"))
 
     def test_drawn_then_discarded_cards_are_not_reported(self):
         def draw(msg, c, target):

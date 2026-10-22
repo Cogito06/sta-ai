@@ -550,7 +550,8 @@ class Session:
         if key == "potions":
             return "\n".join(f"{i} {p['name']} - {cat.potion_text(p['id']) or ''}" for i, p in enumerate(gs.get("potions", [])))
         if key == "map":
-            return "\n".join(self.renderer.map_rows(gs))
+            return "\n".join([f"Map Act{gs.get('act')} | Boss: {gs.get('act_boss', '?')} | you are on floor {gs.get('floor')}"]
+                             + self.renderer.map_legend() + self.renderer.map_rows(gs))
         if key == "card":
             for card_id, card in cat.cards.items():
                 if arg.lower().rstrip("+") in (card_id.lower(), card["base"]["name"].lower()):
