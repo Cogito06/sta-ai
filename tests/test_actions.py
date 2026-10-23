@@ -554,6 +554,15 @@ class MemoryTest(unittest.TestCase):
         self.assertIn("Strength build", memory)
         self.assertIn("F5: Lagavulin wakes after 3 turns.", memory)
 
+    def test_lessons_outlive_the_run(self):
+        session, _ = session_for(self.map_message())
+        session.continue_run()
+        session.note("Card-adding decks: don't stop on draw.", "lesson")
+        self.assertNotIn("Card-adding", session.inspect("memory"))
+        later, _ = session_for(self.map_message())
+        lessons = later.inspect("lessons")
+        self.assertIn("F5) Card-adding decks: don't stop on draw.", lessons)
+
     def test_memory_hidden_in_combat_and_when_off(self):
         import os
         session, _ = session_for(combat_message([strike()], [monster("Cultist", 50)]))

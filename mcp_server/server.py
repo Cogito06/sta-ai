@@ -92,8 +92,9 @@ def note(text: str, tag: str = "") -> str:
     """Write something to remember to this run's memory (kept outside the conversation).
 
     tag="plan" (build idea) and tag="route" (route intention) replace the previous one and are
-    shown on map, reward, shop, rest, boss relic and event screens. Any other tag, or none, is
-    added to the notes; read everything back with inspect("memory")."""
+    shown on map, reward, shop, rest, boss relic and event screens. tag="lesson" goes to the lessons
+    kept across runs (read with inspect("lessons")). Any other tag, or none, is added to this run's
+    notes; read everything back with inspect("memory")."""
     return session().note(text, tag or None)
 
 

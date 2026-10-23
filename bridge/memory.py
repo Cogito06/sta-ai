@@ -5,6 +5,8 @@ Stored as runs/<run>/memory.json so it survives a restarted Claude or a resumed 
   route - the current route intention (a new one replaces the old)
   notes - everything else, in order, as free text with the floor it was written on
 Every write is also in run.jsonl, so replaced plans and routes are never lost.
+
+Lessons are the one thing that outlives a run: runs/lessons.json, shared by all runs.
 """
 import json
 
@@ -37,3 +39,22 @@ class RunMemory:
             tag = f" [{note['tag']}]" if note.get("tag") else ""
             lines.append(f"F{note['floor']}{tag}: {note['text']}")
         return "\n".join(lines) or "Memory is empty."
+
+
+class Lessons:
+    """What the player chose to carry over to later runs (note tag="lesson"), with where it was learned."""
+
+    def __init__(self, path=None):
+        self.path = path
+        self.items = []
+        if path is not None and path.exists():
+            self.items = json.loads(path.read_text(encoding="utf-8"))
+
+    def write(self, text, run=None, floor=None):
+        self.items.append({"text": text, "run": run, "floor": floor})
+        if self.path is not None:
+            self.path.write_text(json.dumps(self.items, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    def full(self):
+        return "\n".join(f"{i + 1}. ({item['run']}, F{item['floor']}) {item['text']}"
+                         for i, item in enumerate(self.items)) or "No lessons yet."

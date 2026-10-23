@@ -12,7 +12,7 @@ import re
 import socket
 import time
 
-from bridge.memory import RunMemory
+from bridge.memory import Lessons, RunMemory
 from bridge.render import Renderer
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -85,6 +85,7 @@ class Session:
         # STS_MEMORY=off hides the run memory from the player (baseline runs); notes are still logged.
         self.memory_on = os.environ.get("STS_MEMORY", "on").lower() not in ("off", "0", "false")
         self.memory = RunMemory()
+        self.lessons = Lessons(ROOT / "runs" / "lessons.json")
 
     # ---------- logging ----------
 
@@ -160,6 +161,9 @@ class Session:
         self.send(command)
         self.start_log(game_state(self.message).get("seed"))
         result = []
+        self.lessons = Lessons(self.lessons.path)
+        if self.memory_on and self.lessons.items:
+            result.append(f"Lessons from earlier runs: {len(self.lessons.items)} (inspect lessons).")
         auto = self.safe_auto_handle(result)
         self.log(input=f"start_run {seed or ''} A{int(ascension)}".strip(), auto=auto)
         return self.compose(result, auto)
@@ -194,7 +198,10 @@ class Session:
         return "\n".join(result + [self.text()])
 
     def note(self, text, tag=None):
-        self.memory.write(text, tag, game_state(self.message).get("floor"))
+        if tag == "lesson":
+            self.lessons.write(text, self.run_dir.name if self.run_dir else None, game_state(self.message).get("floor"))
+        else:
+            self.memory.write(text, tag, game_state(self.message).get("floor"))
         self.log(note=text, tag=tag)
         return "Noted."
 
@@ -593,6 +600,8 @@ class Session:
         words = what.strip().split(maxsplit=1) or [""]
         key, arg = words[0].lower(), (words[1] if len(words) > 1 else "")
         cat = self.renderer.catalog
+        if key == "lessons":
+            return self.lessons.full() if self.memory_on else "Memory is off for this run."
         if key == "memory":
             return self.memory.full() if self.memory_on else "Memory is off for this run."
         if key == "deck":
@@ -623,4 +632,4 @@ class Session:
                 return f"No enemy {arg}."
             monster = combat["monsters"][int(arg)]
             return self.renderer.monster_line(int(arg), monster)
-        return "Use: memory, deck, draw, discard, exhaust, relics, potions, map, card <name>, relic <name>, enemy <n>."
+        return "Use: memory, lessons, deck, draw, discard, exhaust, relics, potions, map, card <name>, relic <name>, enemy <n>."
