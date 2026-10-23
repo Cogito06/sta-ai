@@ -563,6 +563,15 @@ class MemoryTest(unittest.TestCase):
         lessons = later.inspect("lessons")
         self.assertIn("F5) Card-adding decks: don't stop on draw.", lessons)
 
+    def test_game_over_shows_a_review(self):
+        session, _ = session_for(message("GAME_OVER", {"victory": True, "score": 800}, commands=("proceed",)))
+        session.continue_run()
+        session.note("Exhaust build.", "plan")
+        text = session.text()
+        self.assertIn("== Run review ==", text)
+        self.assertIn("Plan (F5): Exhaust build.", text)
+        self.assertIn('tag="lesson"', text)
+
     def test_memory_hidden_in_combat_and_when_off(self):
         import os
         session, _ = session_for(combat_message([strike()], [monster("Cultist", 50)]))

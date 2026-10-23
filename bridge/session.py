@@ -144,7 +144,21 @@ class Session:
             if remembered:
                 first, _, rest = text.partition("\n")
                 text = "\n".join([first] + remembered + [rest])
+        if self.memory_on and game_state(self.message).get("screen_type") == "GAME_OVER":
+            text += "\n" + self.review()
         return text
+
+    def review(self):
+        """Shown on the game over screen: the run at a glance, and the moment to keep lessons for later runs."""
+        gs = game_state(self.message)
+        lines = ["== Run review ==",
+                 f"Ascension {gs.get('ascension_level', 0)}",
+                 "Deck: " + self.renderer.pile(gs.get("deck", [])),
+                 "Relics: " + ", ".join(r["name"] for r in gs.get("relics", [])),
+                 "This run's memory:", self.memory.full(),
+                 f"Lessons kept from earlier runs: {len(self.lessons.items)} (inspect lessons).",
+                 'Lessons you want to keep for later runs: note(text, tag="lesson"). Writing none is fine.']
+        return "\n".join(lines)
 
     # ---------- tools ----------
 
