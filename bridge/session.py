@@ -234,7 +234,7 @@ class Session:
         gained = [r for r in game_state(self.message).get("relics", []) if r["id"] not in relics_before]
         if gained:
             result.append("New relic: " + "; ".join(self.renderer.relic_line(r, always_text=True) for r in gained) + ".")
-        self.log(input=actions, executed=len(done), stop_reason=stop_reason, auto=auto)
+        self.log(input=actions, stop_on=sorted(stop_on), executed=len(done), stop_reason=stop_reason, auto=auto)
         return self.compose(result, auto)
 
     def overlay_open(self):
