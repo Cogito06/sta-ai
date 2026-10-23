@@ -572,6 +572,20 @@ class MemoryTest(unittest.TestCase):
         self.assertIn("Plan (F5): Exhaust build.", text)
         self.assertIn('tag="lesson"', text)
 
+    def test_guides_keep_the_current_view_and_history(self):
+        from bridge.session import ActionError
+        session, _ = session_for(self.map_message())
+        session.continue_run()
+        with self.assertRaises(ActionError):
+            session.guide("neow", "Take the card.")
+        session.guide("Neow choice", "Take the rare card.", "Which Neow option?")
+        session.guide("neow-choice", "Take max HP on Ascension.")
+        text = session.inspect("guide neow-choice")
+        self.assertIn("Which Neow option?", text)
+        self.assertIn("Current view:\nTake max HP on Ascension.", text)
+        self.assertIn("Take the rare card.", text.split("Earlier views:")[1])
+        self.assertIn("neow-choice: Which Neow option?", session.inspect("guides"))
+
     def test_memory_hidden_in_combat_and_when_off(self):
         import os
         session, _ = session_for(combat_message([strike()], [monster("Cultist", 50)]))

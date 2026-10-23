@@ -9,6 +9,7 @@ Every write is also in run.jsonl, so replaced plans and routes are never lost.
 Lessons are the one thing that outlives a run: runs/lessons.json, shared by all runs.
 """
 import json
+import re
 
 
 class RunMemory:
@@ -58,3 +59,54 @@ class Lessons:
     def full(self):
         return "\n".join(f"{i + 1}. ({item['run']}, F{item['floor']}) {item['text']}"
                          for i, item in enumerate(self.items)) or "No lessons yet."
+
+
+class Guides:
+    """One markdown file per question in guides/: the player's current view, and the views it replaced.
+
+    A question can be asked by the humans (a file with an empty view) or by the player itself.
+    The files are plain markdown so people can read them, and they live in the repo so the views
+    can be followed over time.
+    """
+    NONE = "(none yet)"
+
+    def __init__(self, folder):
+        self.folder = folder
+
+    def path(self, topic):
+        slug = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")
+        return self.folder / f"{slug}.md"
+
+    def read(self, topic):
+        path = self.path(topic)
+        if not path.exists():
+            return None
+        text = path.read_text(encoding="utf-8")
+        question = text.splitlines()[0].lstrip("# ").strip()
+        view = text.split("## Current view", 1)[1].split("## History", 1)[0].strip()
+        history = text.split("## History", 1)[1].strip() if "## History" in text else ""
+        return {"topic": path.stem, "question": question, "view": view, "history": history,
+                "asked_by": "human" if "Asked by: human" in text else "player"}
+
+    def topics(self):
+        return [self.read(p.stem) for p in sorted(self.folder.glob("*.md"))] if self.folder.exists() else []
+
+    def write(self, topic, view, question=None, run=None, floor=None):
+        old = self.read(topic)
+        if old is None and not question:
+            raise ValueError(f"No guide '{topic}' yet: give a question to start one.")
+        stamp = f"{run or '?'} F{floor if floor is not None else '?'}"
+        history = old["history"] if old else ""
+        if old and old["view"] != self.NONE:
+            history = f"- {' '.join(old['view'].split())} (replaced at {stamp})\n{history}".strip()
+        asked_by = old["asked_by"] if old else "player"
+        text = (f"# {question or old['question']}\n\nAsked by: {asked_by}\n\n## Current view\n\n"
+                f"{view.strip()}\n\n({stamp})\n\n## History\n\n{history}\n")
+        self.folder.mkdir(parents=True, exist_ok=True)
+        self.path(topic).write_text(text, encoding="utf-8")
+        return self.path(topic).stem
+
+    def listing(self):
+        guides = self.topics()
+        return "\n".join(f"{g['topic']}: {g['question']}" + (" [no view yet]" if g["view"] == self.NONE else "")
+                         for g in guides) or "No guides yet."

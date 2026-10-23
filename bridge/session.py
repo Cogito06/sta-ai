@@ -12,7 +12,7 @@ import re
 import socket
 import time
 
-from bridge.memory import Lessons, RunMemory
+from bridge.memory import Guides, Lessons, RunMemory
 from bridge.render import Renderer
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -86,6 +86,7 @@ class Session:
         self.memory_on = os.environ.get("STS_MEMORY", "on").lower() not in ("off", "0", "false")
         self.memory = RunMemory()
         self.lessons = Lessons(ROOT / "runs" / "lessons.json")
+        self.guides = Guides(ROOT / "guides")
 
     # ---------- logging ----------
 
@@ -157,7 +158,10 @@ class Session:
                  "Relics: " + ", ".join(r["name"] for r in gs.get("relics", [])),
                  "This run's memory:", self.memory.full(),
                  f"Lessons kept from earlier runs: {len(self.lessons.items)} (inspect lessons).",
-                 'Lessons you want to keep for later runs: note(text, tag="lesson"). Writing none is fine.']
+                 "Guides (inspect guide <topic>):", self.guides.listing(),
+                 'Lessons you want to keep for later runs: note(text, tag="lesson"). '
+                 "Your view on a guide's question: guide(topic, view), or start a guide with a question. "
+                 "Writing none is fine."]
         return "\n".join(lines)
 
     # ---------- tools ----------
@@ -178,6 +182,8 @@ class Session:
         self.lessons = Lessons(self.lessons.path)
         if self.memory_on and self.lessons.items:
             result.append(f"Lessons from earlier runs: {len(self.lessons.items)} (inspect lessons).")
+        if self.memory_on and self.guides.topics():
+            result.append("Guides: " + ", ".join(g["topic"] for g in self.guides.topics()) + " (inspect guides).")
         auto = self.safe_auto_handle(result)
         self.log(input=f"start_run {seed or ''} A{int(ascension)}".strip(), auto=auto)
         return self.compose(result, auto)
@@ -210,6 +216,15 @@ class Session:
         result = []
         self.close_overlays(result)
         return "\n".join(result + [self.text()])
+
+    def guide(self, topic, view, question=None):
+        try:
+            name = self.guides.write(topic, view, question, self.run_dir.name if self.run_dir else None,
+                                     game_state(self.message).get("floor"))
+        except ValueError as e:
+            raise ActionError(str(e))
+        self.log(guide=name, view=view, question=question)
+        return f"Guide '{name}' updated."
 
     def note(self, text, tag=None):
         if tag == "lesson":
@@ -614,6 +629,13 @@ class Session:
         words = what.strip().split(maxsplit=1) or [""]
         key, arg = words[0].lower(), (words[1] if len(words) > 1 else "")
         cat = self.renderer.catalog
+        if key == "guides":
+            return self.guides.listing() if self.memory_on else "Memory is off for this run."
+        if key == "guide":
+            g = self.guides.read(arg) if self.memory_on else None
+            if g is None:
+                return "Memory is off for this run." if not self.memory_on else f"No guide '{arg}'. Guides:\n" + self.guides.listing()
+            return f"{g['question']}\n\nCurrent view:\n{g['view']}" + (f"\n\nEarlier views:\n{g['history']}" if g["history"] else "")
         if key == "lessons":
             return self.lessons.full() if self.memory_on else "Memory is off for this run."
         if key == "memory":
@@ -646,4 +668,4 @@ class Session:
                 return f"No enemy {arg}."
             monster = combat["monsters"][int(arg)]
             return self.renderer.monster_line(int(arg), monster)
-        return "Use: memory, lessons, deck, draw, discard, exhaust, relics, potions, map, card <name>, relic <name>, enemy <n>."
+        return "Use: memory, lessons, guides, guide <topic>, deck, draw, discard, exhaust, relics, potions, map, card <name>, relic <name>, enemy <n>."

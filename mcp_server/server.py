@@ -81,8 +81,8 @@ def act(actions: str, stop_on: str = "") -> str:
 @mcp.tool()
 @guarded
 def inspect(what: str) -> str:
-    """Look something up without changing the game: memory, deck, draw, discard, exhaust, relics,
-    potions, map, card <name>, relic <name>, enemy <n>."""
+    """Look something up without changing the game: memory, lessons, guides, guide <topic>, deck, draw,
+    discard, exhaust, relics, potions, map, card <name>, relic <name>, enemy <n>."""
     return session().inspect(what)
 
 
@@ -96,6 +96,17 @@ def note(text: str, tag: str = "") -> str:
     kept across runs (read with inspect("lessons")). Any other tag, or none, is added to this run's
     notes; read everything back with inspect("memory")."""
     return session().note(text, tag or None)
+
+
+@mcp.tool()
+@guarded
+def guide(topic: str, view: str, question: str = "") -> str:
+    """Write your current view on a guide's question (kept across runs in guides/<topic>.md).
+
+    The new view replaces the current one; the old one is kept in the guide's history.
+    To start a new guide, give a topic name and the question it answers.
+    List guides with inspect("guides"), read one with inspect("guide <topic>")."""
+    return session().guide(topic, view, question or None)
 
 
 if __name__ == "__main__":
