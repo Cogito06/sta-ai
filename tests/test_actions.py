@@ -586,6 +586,13 @@ class MemoryTest(unittest.TestCase):
         self.assertIn("Take the rare card.", text.split("Earlier views:")[1])
         self.assertIn("neow-choice: Which Neow option?", session.inspect("guides"))
 
+    def test_map_node_by_column(self):
+        session, game = session_for(self.map_message())
+        session.continue_run()
+        session.act("choose x2")
+        self.assertEqual(game.sent[-1], "choose 1")
+        self.assertIn("no next node at x7", session.act("choose x7"))
+
     def test_memory_hidden_in_combat_and_when_off(self):
         import os
         session, _ = session_for(combat_message([strike()], [monster("Cultist", 50)]))

@@ -405,9 +405,17 @@ class Session:
         raise ActionError(f"none of {', '.join(names)} is possible here")
 
     def choose(self, args):
+        gs = game_state(self.message)
+        column = re.fullmatch(r"x=?(\d+)", args[0].lower()) if args else None
+        if column and gs.get("screen_type") == "MAP":
+            # A map node can also be picked by its column, like clicking it on the map.
+            nodes = gs["screen_state"].get("next_nodes", [])
+            match = [i for i, n in enumerate(nodes) if n["x"] == int(column.group(1))]
+            if not match:
+                raise ActionError(f"no next node at x{column.group(1)}; next: " + ", ".join(f"x{n['x']}" for n in nodes))
+            args = [str(match[0])] + args[1:]
         if not args or not args[0].isdigit():
             raise ActionError("choose needs a number")
-        gs = game_state(self.message)
         choices = gs.get("choice_list")
         if choices is not None and int(args[0]) >= len(choices):
             raise ActionError(f"choose 0 to {len(choices) - 1}" if choices else "nothing to choose here")

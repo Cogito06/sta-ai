@@ -44,7 +44,7 @@ class RenderTest(unittest.TestCase):
 
     def test_map_lists_next_nodes_in_choice_order(self):
         text = Renderer().render(load("0005"))
-        self.assertIn("Next: 0 M(x1)  1 M(x3)  2 M(x4)", text)
+        self.assertIn("Next (choose <n> or choose x<column>): 0 M(x1)  1 M(x3)  2 M(x4)", text)
 
 
 

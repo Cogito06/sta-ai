@@ -263,7 +263,7 @@ class Renderer:
             lines.append("Next: 0 Boss")
         else:
             nxt = [f"{i} {n['symbol']}(x{n['x']})" for i, n in enumerate(ss.get("next_nodes", []))]
-            lines.append("Next: " + "  ".join(nxt))
+            lines.append("Next (choose <n> or choose x<column>): " + "  ".join(nxt))
         return lines
 
     def card_reward(self, gs):

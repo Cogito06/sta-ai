@@ -52,6 +52,9 @@ class Lessons:
             self.items = json.loads(path.read_text(encoding="utf-8"))
 
     def write(self, text, run=None, floor=None):
+        if self.path is not None and self.path.exists():
+            # The file may have been edited by hand since it was read.
+            self.items = json.loads(self.path.read_text(encoding="utf-8"))
         self.items.append({"text": text, "run": run, "floor": floor})
         if self.path is not None:
             self.path.write_text(json.dumps(self.items, ensure_ascii=False, indent=1), encoding="utf-8")
