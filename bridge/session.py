@@ -554,6 +554,12 @@ class Session:
             if screen == "HAND_SELECT" and len(ss.get("selected", [])) == ss.get("max_cards") and "confirm" in self.available():
                 names = self.renderer.pile(ss["selected"])
                 self.send("confirm")
+                # The game can report the state before the selection screen has closed; a command sent
+                # then (e.g. end) is refused. Wait until it is really gone.
+                for _ in range(5):
+                    if game_state(self.message).get("screen_type") != "HAND_SELECT" and "confirm" not in self.available():
+                        break
+                    self.settle(20)
                 done.append(f"selected {names}")
                 continue
             if screen == "SHOP_SCREEN" and choices == [] and self.left_shop_floor != gs.get("floor"):
