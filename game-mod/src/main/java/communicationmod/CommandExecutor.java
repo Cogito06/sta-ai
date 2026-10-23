@@ -213,6 +213,8 @@ public class CommandExecutor {
         basemod.DevConsole.currentText = text;
         basemod.DevConsole.execute();
         basemod.DevConsole.currentText = "";
+        // Some console commands change nothing the game reports (or wait for a click), so always answer.
+        CommunicationMod.mustSendGameState = true;
     }
 
     // sts-ai: resume the saved run, like the main menu's Continue button.

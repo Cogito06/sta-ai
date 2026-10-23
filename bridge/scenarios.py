@@ -26,9 +26,11 @@ def dev(session, command):
     reply = session.link.send(f"dev {command}")
     if "error" in reply:
         raise RuntimeError(f"dev {command}: {reply['error']}")
-    session.message = reply
+    # The game answers at once; queued effects (added cards, spawned fights) land a few frames later.
+    later = session.link.send("wait 30")
+    session.message = later if "error" not in later else reply
     session.wait_for_intents()
-    return reply
+    return session.message
 
 
 def end_open_run(session):
@@ -40,7 +42,8 @@ def end_open_run(session):
         dev(session, "fight Cultist")
     session.link.send("dev kill self")
     for _ in range(30):
-        msg = session.link.send("wait 60")
+        session.link.send("wait 60")  # refused at the main menu, which is fine
+        msg = session.link.get()
         if not msg.get("in_game"):
             break
         if "proceed" in msg.get("available_commands", []):
@@ -85,10 +88,14 @@ def golden_idol(session, check):
 def awakened_one(session, check):
     fresh_run(session)
     dev(session, "fight Awakened One")
-    dev(session, "power Strength 400")
-    dev(session, "hand add Strike_R")
-    out = session.act("play Strike 0")
-    monster = combat_of(session.message)["monsters"][0] if combat_of(session.message) else {}
+    # The fight comes with two Cultists; aim at the Awakened One itself.
+    monsters = combat_of(session.message)["monsters"]
+    target = next(i for i, m in enumerate(monsters) if m["name"] == "Awakened One")
+    # `power` waits for a mouse click on a target, so use a Searing Blow upgraded far past 300 damage instead.
+    dev(session, "energy add 5")
+    dev(session, "hand add Searing Blow 1 99")
+    out = session.act(f"play Searing Blow {target}")
+    monster = combat_of(session.message)["monsters"][target] if combat_of(session.message) else {}
     check.log.append(out.splitlines()[0])
     check.expect("combat won" not in out, "phase one kill is not reported as a win")
     check.expect(bool(monster.get("half_dead")) or "reviving" in out, "Awakened One shows as reviving")
