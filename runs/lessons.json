@@ -1,0 +1,42 @@
+[
+ {
+  "text": "Dead Branch makes exhaust the engine: after getting it, favour cards that exhaust or play many 0-cost skills (Corruption, Dark Embrace, Feel No Pain, True Grit+, Sever Soul, Offering, Sentinel). Corruption + Dead Branch + Dark Embrace carried an A5 win.",
+  "run": "20261023_171713_seed--2293683423393520035",
+  "floor": 6
+ },
+ {
+  "text": "When most cards put new cards into the hand (Dead Branch, Dark Embrace, Offering), the default draw stop interrupts almost every action. Use stop_on=\"choice,spawn\" for sequences made only of cards already in hand, put card-adding cards last, and plan the new cards on the next call. Keep draw on when the rest of the turn depends on what arrives (short on energy, Fiend Fire / Sever Soul, hand near 10).",
+  "run": "20261023_171713_seed--2293683423393520035",
+  "floor": 33
+ },
+ {
+  "text": "Buffer (Fossilized Helix) is used up by self-inflicted HP loss too (Offering, Bloodletting). If the first enemy hit is big, play those after it, or accept losing the Buffer only when the energy/draw is worth more than the hit.",
+  "run": "20261023_171713_seed--2293683423393520035",
+  "floor": 18
+ },
+ {
+  "text": "Time Eater: Time Warp counts cards across turns and ends your turn at 12, so check the counter at turn start and spend the few cards left on the biggest hits. Below half HP it heals back to half on its next turn (BUFF intent), so damage past that line that turn is wasted; save the burst for after. Orange Pellets (power+attack+skill in one turn) clears its debuffs on you.",
+  "run": "20261023_171713_seed--2293683423393520035",
+  "floor": 50
+ },
+ {
+  "text": "Hand letters are not in order once new cards arrive (e.g. f c e u v). Re-read the letter next to the card name before sending; I played Second Wind thinking it was Offering and exhausted my own Offering and Double Tap.",
+  "run": "20261023_171713_seed--2293683423393520035",
+  "floor": 50
+ },
+ {
+  "text": "Darklings: a dead one shows as (reviving) and comes back at half HP on the enemy turn unless all are dead. Lower them evenly with AoE, then finish all in the same turn; finishing the last one before their turn wins even if the others are still 'reviving'.",
+  "run": "20261023_171713_seed--2293683423393520035",
+  "floor": 35
+ },
+ {
+  "text": "Don't take an Act 1 elite below ~50% HP with a starter-ish deck. I entered Lagavulin (110 HP) at 24/80 to reach a rest right after and died on F8, 1 damage short. Lagavulin hits 18-20 twice per 3 turns; a deck dealing ~20/turn needs ~5 turns, so it costs ~40+ HP. Pick the path whose elite comes after a rest, or a ? room, when HP is low. Hitting a sleeping Lagavulin wakes it; it skips that enemy turn, then attacks 18+ the next. Once awake it has no Metallicize block.",
+  "run": "20261023_200622_seed--4007081388742978760",
+  "floor": 8
+ },
+ {
+  "text": "On the map, choose <n> takes the index in the \"Next:\" list, not the map column. \"Next: 0 M(x1) 1 M(x3) 2 M(x4) 3 M(x6)\" -> choose 1 goes to column 3. I typed choose 3 meaning column 3, landed on column 6 and lost the planned early shop route (ran into two elites instead).",
+  "run": "20261023_200622_seed--4007081388742978760",
+  "floor": 8
+ }
+]
