@@ -31,7 +31,27 @@ def dev(session, command):
     return reply
 
 
+def end_open_run(session):
+    """A scenario that failed midway leaves its run open; die and go back to the main menu."""
+    session.message = session.link.get()
+    if not session.message.get("in_game"):
+        return
+    if not combat_of(session.message):
+        dev(session, "fight Cultist")
+    session.link.send("dev kill self")
+    for _ in range(30):
+        msg = session.link.send("wait 60")
+        if not msg.get("in_game"):
+            break
+        if "proceed" in msg.get("available_commands", []):
+            session.link.send("proceed")
+    session.message = session.link.get()
+    if session.message.get("in_game"):
+        raise RuntimeError("could not end the open run")
+
+
 def fresh_run(session):
+    end_open_run(session)
     session.start_run("SCENARIO1", overwrite=True)
     for _ in range(10):
         if game_state(session.message).get("screen_type") != "EVENT":

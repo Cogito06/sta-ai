@@ -32,6 +32,7 @@ public class CommandExecutor {
     private static final Logger logger = LogManager.getLogger(CommandExecutor.class.getName());
 
     public static boolean executeCommand(String command) throws InvalidCommandException {
+        String original = command;
         command = command.toLowerCase();
         String [] tokens = command.split("\\s+");
         if(tokens.length == 0) {
@@ -40,7 +41,8 @@ public class CommandExecutor {
         if (!isCommandAvailable(tokens[0])) {
             throw new InvalidCommandException("Invalid command: " + tokens[0] + ". Possible commands: " + getAvailableCommands());
         }
-        String command_tail = command.substring(tokens[0].length());
+        // dev passes its argument to the BaseMod console, whose IDs are case-sensitive
+        String command_tail = original.substring(tokens[0].length());
         switch(tokens[0]) {
             case "play":
                 executePlayCommand(tokens);
