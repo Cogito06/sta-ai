@@ -147,19 +147,21 @@ class Session:
 
     # ---------- tools ----------
 
-    def start_run(self, seed=None, overwrite=False):
+    def start_run(self, seed=None, overwrite=False, ascension=0):
         if self.message.get("in_game"):
             raise ActionError("A run is in progress. Finish it, or abandon it from the game menu first.")
         if "continue" in self.available() and not overwrite:
             raise ActionError("There is a saved run. Use continue_run to resume it, "
                               "or start_run with overwrite to replace it.")
-        command = "start ironclad 0" + (f" {seed}" if seed else "")
+        if not 0 <= int(ascension) <= 20:
+            raise ActionError("ascension must be 0-20")
+        command = f"start ironclad {int(ascension)}" + (f" {seed}" if seed else "")
         self.renderer = Renderer(self.renderer.catalog, self.renderer.card_text_mode)
         self.send(command)
         self.start_log(game_state(self.message).get("seed"))
         result = []
         auto = self.safe_auto_handle(result)
-        self.log(input=f"start_run {seed or ''}".strip(), auto=auto)
+        self.log(input=f"start_run {seed or ''} A{int(ascension)}".strip(), auto=auto)
         return self.compose(result, auto)
 
     def continue_run(self):

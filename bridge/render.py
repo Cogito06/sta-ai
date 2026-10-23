@@ -65,7 +65,9 @@ class Renderer:
                 potions.append(f"{i} -")
             else:
                 potions.append(f"{i} {potion['name']}{'(T)' if potion.get('requires_target') else ''}")
-        return (f"F{gs['floor']} Act{gs['act']} | HP {gs['current_hp']}/{gs['max_hp']} | Gold {gs['gold']}"
+        # The top bar shows the ascension level only when it is above 0.
+        asc = f" A{gs['ascension_level']}" if gs.get("ascension_level") else ""
+        return (f"F{gs['floor']} Act{gs['act']}{asc} | HP {gs['current_hp']}/{gs['max_hp']} | Gold {gs['gold']}"
                 f" | Potions: {' '.join(potions) if potions else 'none'}")
 
     def visit(self, x, y, act=None):

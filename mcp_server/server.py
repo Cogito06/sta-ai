@@ -42,10 +42,10 @@ def guarded(tool):
 
 @mcp.tool()
 @guarded
-def start_run(seed: str = "", overwrite: bool = False) -> str:
-    """Start a new Ironclad Ascension 0 run. Optional seed (letters and digits, as shown in game).
-    Refuses when a saved run exists, unless overwrite is true (that deletes the saved run)."""
-    return session().start_run(seed or None, overwrite)
+def start_run(seed: str = "", overwrite: bool = False, ascension: int = 0) -> str:
+    """Start a new Ironclad run at the given Ascension level (0-20). Optional seed (letters and digits,
+    as shown in game). Refuses when a saved run exists, unless overwrite is true (that deletes the saved run)."""
+    return session().start_run(seed or None, overwrite, ascension)
 
 
 @mcp.tool()
