@@ -1,4 +1,5 @@
-runs/
+runs/*
+!runs/lessons.json
 __pycache__/
 *.pyc
 .venv/
