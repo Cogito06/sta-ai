@@ -202,7 +202,9 @@ class Renderer:
         lines += [self.monster_line(i, m) for i, m in enumerate(combat["monsters"])]
         labels = self.label_hand(combat)
         lines.append(f"Hand ({len(combat['hand'])}/10):")
-        lines += [" " + self.card_line(card, label, in_hand=True) for card, label in zip(combat["hand"], labels)]
+        # Listed in letter order: once cards come and go the game's hand order mixes the letters up.
+        hand = sorted(zip(combat["hand"], labels), key=lambda pair: HAND_LETTERS.index(pair[1]))
+        lines += [" " + self.card_line(card, label, in_hand=True) for card, label in hand]
         lines.append(f"Draw {len(combat['draw_pile'])} | Discard {len(combat['discard_pile'])}"
                      f" | Exhaust {len(combat['exhaust_pile'])}")
         counters = [self.relic_line(r) for r in gs.get("relics", []) if r.get("counter", -1) >= 0]

@@ -48,6 +48,20 @@ class RenderTest(unittest.TestCase):
 
 
 
+class HandOrderTest(unittest.TestCase):
+    def test_hand_is_listed_in_letter_order(self):
+        from tests.states import card, combat_message, monster
+        r = Renderer()
+        first = combat_message([card("Strike_R", uuid="s"), card("Defend_R", uuid="d")], [monster("Cultist", 50)])
+        r.render(first)
+        # Strike was played, two new cards came in and the game put one before Defend.
+        later = combat_message([card("Bash", uuid="b", cost=2), card("Defend_R", uuid="d"), card("Inflame", uuid="i")],
+                               [monster("Cultist", 50)])
+        text = r.render(later)
+        hand = [line.strip()[:1] for line in text.split("Hand (3/10):")[1].splitlines()[1:4]]
+        self.assertEqual(hand, ["b", "c", "d"])
+
+
 class CardFaceTest(unittest.TestCase):
     def test_reward_cards_without_computed_values_use_the_catalog(self):
         card = {"id": "Heavy Blade", "upgrades": 0, "cost": 2, "damage": -1, "magic_number": 3, "uuid": "x"}
