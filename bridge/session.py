@@ -83,7 +83,7 @@ class Session:
         self.run_dir = None
         self.step = 0
         # STS_MEMORY=off hides the run memory from the player (baseline runs); notes are still logged.
-        self.memory_on = os.environ.get("STS_MEMORY", "on").lower() not in ("off", "0", "false")
+        self.memory_on = self.memory_setting()
         self.memory = RunMemory()
         self.lessons = Lessons(ROOT / "runs" / "lessons.json")
         self.guides = Guides(ROOT / "guides")
@@ -166,6 +166,16 @@ class Session:
 
     # ---------- tools ----------
 
+    @staticmethod
+    def memory_setting():
+        """STS_MEMORY=off, or {"memory": "off"} in runs/settings.json (read at each new run, so an
+        evaluation can switch it without restarting the MCP server)."""
+        value = os.environ.get("STS_MEMORY", "on")
+        settings = ROOT / "runs" / "settings.json"
+        if settings.exists():
+            value = str(json.loads(settings.read_text(encoding="utf-8")).get("memory", value))
+        return value.lower() not in ("off", "0", "false")
+
     def start_run(self, seed=None, overwrite=False, ascension=0):
         if self.message.get("in_game"):
             raise ActionError("A run is in progress. Finish it, or abandon it from the game menu first.")
@@ -176,6 +186,7 @@ class Session:
             raise ActionError("ascension must be 0-20")
         command = f"start ironclad {int(ascension)}" + (f" {seed}" if seed else "")
         self.renderer = Renderer(self.renderer.catalog, self.renderer.card_text_mode)
+        self.memory_on = self.memory_setting()
         self.send(command)
         self.start_log(game_state(self.message).get("seed"))
         result = []
@@ -185,7 +196,7 @@ class Session:
         if self.memory_on and self.guides.topics():
             result.append("Guides: " + ", ".join(g["topic"] for g in self.guides.topics()) + " (inspect guides).")
         auto = self.safe_auto_handle(result)
-        self.log(input=f"start_run {seed or ''} A{int(ascension)}".strip(), auto=auto)
+        self.log(input=f"start_run {seed or ''} A{int(ascension)}".strip(), memory=self.memory_on, auto=auto)
         return self.compose(result, auto)
 
     def continue_run(self):
@@ -218,6 +229,9 @@ class Session:
         return "\n".join(result + [self.text()])
 
     def guide(self, topic, view, question=None):
+        if not self.memory_on:
+            self.log(guide=topic, view=view, question=question)
+            return "Memory is off for this run: logged only."
         try:
             name = self.guides.write(topic, view, question, self.run_dir.name if self.run_dir else None,
                                      game_state(self.message).get("floor"))
@@ -227,7 +241,9 @@ class Session:
         return f"Guide '{name}' updated."
 
     def note(self, text, tag=None):
-        if tag == "lesson":
+        if tag == "lesson" and not self.memory_on:
+            pass  # baseline runs must not change what later runs see; the run log keeps it
+        elif tag == "lesson":
             self.lessons.write(text, self.run_dir.name if self.run_dir else None, game_state(self.message).get("floor"))
         else:
             self.memory.write(text, tag, game_state(self.message).get("floor"))

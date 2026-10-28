@@ -593,6 +593,18 @@ class MemoryTest(unittest.TestCase):
         self.assertEqual(game.sent[-1], "choose 1")
         self.assertIn("no next node at x7", session.act("choose x7"))
 
+    def test_settings_file_turns_memory_off_without_touching_lessons(self):
+        from bridge import session as session_module
+        (session_module.ROOT / "runs").mkdir(exist_ok=True)
+        (session_module.ROOT / "runs" / "settings.json").write_text('{"memory": "off"}')
+        session, _ = session_for(self.map_message())
+        session.continue_run()
+        session.note("x", "lesson")
+        self.assertIn("logged only", session.guide("neow", "y", "q?"))
+        self.assertFalse((session_module.ROOT / "runs" / "lessons.json").exists())
+        self.assertFalse((session_module.ROOT / "guides").exists())
+        self.assertEqual(session.inspect("lessons"), "Memory is off for this run.")
+
     def test_memory_hidden_in_combat_and_when_off(self):
         import os
         session, _ = session_for(combat_message([strike()], [monster("Cultist", 50)]))
