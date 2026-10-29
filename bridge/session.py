@@ -648,6 +648,11 @@ class Session:
     # ---------- inspect ----------
 
     def inspect(self, what):
+        # Logged so evaluations can see what the player chose to look up (the answer is not kept).
+        self.log(inspect=what)
+        return self._inspect(what)
+
+    def _inspect(self, what):
         gs = game_state(self.message)
         combat = gs.get("combat_state") or {}
         words = what.strip().split(maxsplit=1) or [""]
