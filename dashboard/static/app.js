@@ -34,7 +34,7 @@ const state = {
 
 const pageHead = (crumbs, title, small, desc) => `
   <div class="page-head">
-    <div class="crumbs">${["Facility", ...crumbs].map((c) => `<span>${esc(c)}</span>`).join("")}</div>
+    <div class="crumbs">${["Spire Chronicle", ...crumbs].map((c) => `<span>${esc(c)}</span>`).join("")}</div>
     <h1 class="section-title">${esc(title)}${small ? `<small>${esc(small)}</small>` : ""}</h1>
     ${desc ? `<p class="page-desc">${esc(desc)}</p>` : ""}
   </div>`;
@@ -180,7 +180,7 @@ function renderReplayShell() {
   const options = state.runs.map((r) => `<option value="${esc(r.id)}" ${r.id === s.id ? "selected" : ""}>${esc(r.seed)} · ${esc(fmtDate(r.started))} · F${r.floor} · ${esc(r.result)}${isTest(r) ? " (测试)" : ""}</option>`).join("");
   const memo = run.memory || {};
   root.innerHTML = `
-    ${pageHead(["Replay", s.seed], `${s.seed} 回放`, `Ascension ${s.ascension ?? "?"} · ${s.result === "阵亡" ? "Terminated" : s.result === "胜利" ? "Cleared" : "Active"}`)}
+    ${pageHead(["Replay", s.seed], `${s.seed} 回放`, `Ascension ${s.ascension ?? "?"} · ${s.result === "阵亡" ? "Defeated" : s.result === "胜利" ? "Victory" : "In progress"}`)}
     <div class="replay-head">
       <select id="run-select">${options}</select>
       <span class="badge ${s.result === "胜利" ? "win" : s.result === "阵亡" ? "dead" : "going"}">${esc(s.result)}</span>
@@ -269,7 +269,13 @@ async function setStep(n) {
   $("#step-label").textContent = `第 ${n} 步 · F${t.floor ?? "?"} · ${SCREEN_NAME[t.screen] || t.screen || ""}`;
   document.querySelectorAll("#log-list .log-item").forEach((el) => el.classList.toggle("cur", +el.dataset.step === n));
   const cur = $(`#log-list .log-item[data-step="${n}"]`);
-  if (cur) cur.scrollIntoView({ block: "nearest" });
+  // Scroll only the log list; scrollIntoView would also move the page.
+  const list = $("#log-list");
+  if (cur && list) {
+    const top = cur.offsetTop - list.offsetTop;
+    if (top < list.scrollTop || top + cur.offsetHeight > list.scrollTop + list.clientHeight)
+      list.scrollTop = top - list.clientHeight / 3;
+  }
   moveChartCursor();
   const act = t.act ?? 1;
   if (state.act !== act) { state.act = act; renderMap(); } else highlightHere();
@@ -428,7 +434,7 @@ function screenHtml(gs) {
       return `<div class="battlefield"><div class="panel-title">选择下一层</div>${optionsList((s.next_nodes || []).map((n) => `${ROOM_ICON[n.symbol] || n.symbol} 第 ${n.x} 列`))}</div>`;
     case "GAME_OVER":
       return `<div class="battlefield gameover">
-        <div class="go-title" style="color:${s.victory ? "var(--gold)" : "#ff8a76"}">${s.victory ? "登顶成功" : "攀登终结"}</div>
+        <div class="go-title" style="color:${s.victory ? "var(--ok)" : "var(--bad)"}">${s.victory ? "登顶成功" : "攀登终结"}</div>
         <div class="go-score">最终分数 <b>${s.score ?? "?"}</b></div></div>`;
     default:
       return `<div class="battlefield muted">${esc(SCREEN_NAME[gs.screen_type] || gs.screen_type || "")}</div>`;
@@ -457,10 +463,10 @@ function renderChart() {
   }
   tl.forEach((p, i) => {
     if (p.room === "MonsterRoomBoss" && (i === 0 || tl[i - 1].room !== "MonsterRoomBoss"))
-      bosses += `<g><circle class="boss" cx="${x(i)}" cy="${y(p.hp)}" r="5"/><text x="${x(i)}" y="${y(p.hp) - 9}" text-anchor="middle" fill="#f3d58c">♛ ${p.hp}</text></g>`;
+      bosses += `<g><circle class="boss" cx="${x(i)}" cy="${y(p.hp)}" r="5"/><text x="${x(i)}" y="${y(p.hp) - 9}" text-anchor="middle" class="boss-label">♛ ${p.hp}</text></g>`;
   });
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" id="chart-svg">
-    <defs><linearGradient id="hpgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(255,90,67,.45)"/><stop offset="1" stop-color="rgba(255,90,67,0)"/></linearGradient></defs>
+    <defs><linearGradient id="hpgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D2496A" stop-opacity=".22"/><stop offset="1" stop-color="#D2496A" stop-opacity="0"/></linearGradient></defs>
     ${bands}
     <line class="axis" x1="${P.l}" y1="${H - P.b}" x2="${W - P.r}" y2="${H - P.b}"/>
     <text x="4" y="${y(maxHp) + 4}">${maxHp}</text><text x="4" y="${y(maxHp / 2) + 4}">${Math.round(maxHp / 2)}</text>
@@ -511,7 +517,7 @@ function renderMap() {
     const key = `${n.x},${n.y}`;
     circles += `<g class="node ${n.symbol} ${walkSet.has(key) ? "walk" : ""}" data-node="${key}"><circle cx="${px(n.x)}" cy="${py(n.y)}" r="12"/><text x="${px(n.x)}" y="${py(n.y)}">${ROOM_ICON[n.symbol] || esc(n.symbol)}</text></g>`;
   }
-  const boss = `<g class="node B"><circle cx="${W / 2}" cy="22" r="16" style="stroke:#c0392b;fill:#3a0f0b"/><text x="${W / 2}" y="22">♛</text></g>`;
+  const boss = `<g class="node B"><circle cx="${W / 2}" cy="22" r="16" style="stroke:var(--bad);fill:var(--bad-soft)"/><text x="${W / 2}" y="22">♛</text></g>`;
   $("#map-view").innerHTML = `<svg viewBox="0 0 ${W} ${H}">${edges}${circles}${boss}</svg>`;
   highlightHere();
 }
@@ -596,7 +602,7 @@ function renderLore(tab, sub) {
     body = `<div class="panel wiki">${md(k.docs["eval-baseline.md"] || "没有评测记录")}</div>`;
   }
   $("#view-lore").innerHTML = `
-    ${pageHead(["Archive"], "知识库", "Knowledge Archive", "AI 跨局积累的经验、攻略，以及每轮评测的记录。")}
+    ${pageHead(["Knowledge"], "知识库", "Knowledge", "AI 跨局积累的经验、攻略，以及每轮评测的记录。")}
     <div class="lore-tabs">${tabs.map(([id, name]) => `<button class="btn ${id === tab ? "active" : ""}" data-lore="${id}">${name}</button>`).join("")}
       <button class="btn small" id="lore-reload" style="margin-left:auto">刷新</button></div>
     ${body}`;
@@ -639,9 +645,9 @@ async function pollLive() {
   const summary = state.runs.find((r) => r.id === info.run);
   const fresh = Date.now() / 1000 - info.mtime < 120;
   $("#view-live").innerHTML = `
-    ${pageHead(["Monitor"], "实时观战", "Live Monitor", "每 3 秒读取一次最新的对局记录。")}
+    ${pageHead(["Live"], "实时观战", "Live", "每 3 秒读取一次最新的对局记录。")}
     <div class="live-banner">
-      <span class="status" style="color:${fresh ? "#ff8a76" : "var(--muted)"}">${fresh ? `<span class="live-dot"></span>正在攀登` : "暂无动静"}</span>
+      <span class="status" style="color:${fresh ? "var(--star)" : "var(--muted)"}">${fresh ? `<span class="live-dot"></span>正在攀登` : "暂无动静"}</span>
       <span class="chip">${esc(info.run)}</span>
       <span class="chip">第 ${info.steps} 步</span>
       <span class="chip" id="live-age">${ageText(info.mtime)}</span>
