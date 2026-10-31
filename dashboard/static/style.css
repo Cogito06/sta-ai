@@ -452,3 +452,5 @@ code, .seed, .step-label, .log-item .sn, .log-item .act, .diff, .chip, .stat .nu
 .gico.room { width: 30px; height: 30px; margin: -6px 6px -6px 0; }
 .potion.slot img { width: 100%; height: 100%; object-fit: contain; transform: scale(1.3); opacity: .8; }
 .potion.art.slot { opacity: 1; cursor: default; }
+.map .node[data-floor] { cursor: pointer; }
+.map .node[data-floor]:hover circle.ring { fill: rgba(176, 38, 26, .14); stroke: #b0261a; stroke-width: 3; }

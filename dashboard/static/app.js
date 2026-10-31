@@ -291,7 +291,7 @@ function renderReplayShell() {
           <div id="state-view"></div>
         </div>
         <div class="panel map">
-          <div class="panel-title">攀登路线</div>
+          <div class="panel-title">攀登路线 <span class="hint">点走过的房间跳到那一步</span></div>
           <div class="act-tabs" id="act-tabs"></div>
           <div id="map-view"></div>
         </div>
@@ -649,7 +649,8 @@ function renderMap() {
     const mark = icon && state.game.available
       ? `<image href="${G(`images/ui/map/${icon}.png`)}" x="${x - S / 2}" y="${y - S / 2}" width="${S}" height="${S}"/>`
       : `<text x="${x}" y="${y}">${ROOM_ICON[n.symbol] || esc(n.symbol)}</text>`;
-    icons += `<g class="node ${n.symbol} ${walkSet.has(key) ? "walk" : ""}" data-node="${key}"><circle class="ring" cx="${x}" cy="${y}" r="${S / 2 + 2}"/>${mark}</g>`;
+    const walk = walkSet.has(key);
+    icons += `<g class="node ${n.symbol} ${walk ? "walk" : ""}" data-node="${key}"${walk ? ` data-floor="${roomFloor(state.act, n.y)}"` : ""}>${walk ? `<title>F${roomFloor(state.act, n.y)} · 点击跳到这个房间</title>` : ""}<circle class="ring" cx="${x}" cy="${y}" r="${S / 2 + 2}"/>${mark}</g>`;
   }
   const bossName = run.bosses?.[state.act];
   const bk = bossIcon(bossName);
@@ -660,8 +661,28 @@ function renderMap() {
     ? `<div class="paper">${["mapTop", "mapMid", "mapBot"].map((p) => `<img src="${G(`images/ui/map/${p}.png`)}" alt="">`).join("")}</div>` : "";
   $("#map-view").innerHTML = `<div class="mapsheet ${paper ? "" : "plain"}">${paper}<svg viewBox="0 0 ${W} ${H}">${boss}
     ${bossName ? `<text class="boss-name" x="${W / 2}" y="152">${esc(bossName)}</text>` : ""}${edges}${icons}</svg></div>`;
+  $("#map-view").onclick = (ev) => {
+    const node = ev.target.closest("[data-floor]");
+    if (node) jumpToFloor(state.act, +node.dataset.floor);
+  };
   highlightHere();
 }
+
+// Map rows count from 0 at the bottom of each act; floors run on across acts (act 2 starts at floor 18).
+const roomFloor = (act, y) => y + 1 + 17 * ((act ?? 1) - 1);
+
+// The first step inside that room (past the map screen that chose it), shown at the top of the replay.
+async function jumpToFloor(act, floor) {
+  const tl = state.run.timeline;
+  let i = tl.findIndex((t) => t.act === act && t.floor === floor && t.screen !== "MAP");
+  if (i < 0) i = tl.findIndex((t) => t.act === act && t.floor === floor);
+  if (i < 0) return;
+  stopPlay();
+  await setStep(i + 1);
+  const top = $("#state-view").closest(".panel").getBoundingClientRect().top + scrollY - 76;
+  window.scrollTo({ top, behavior: "smooth" });
+}
+
 function highlightHere() {
   document.querySelectorAll("#map-view .node.here").forEach((n) => n.classList.remove("here"));
   const t = state.run?.timeline[state.step - 1];
