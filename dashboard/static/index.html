@@ -5,28 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>尖塔战报 · Spire Chronicle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;600&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@600;700&display=swap">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="embers" aria-hidden="true"></div>
+<div class="spire-bg" aria-hidden="true"></div>
 <header class="topbar">
-  <div class="brand">
-    <svg class="sigil" viewBox="0 0 64 64" aria-hidden="true">
-      <path d="M32 3 L40 22 L60 24 L45 37 L50 58 L32 47 L14 58 L19 37 L4 24 L24 22 Z" fill="none" stroke="currentColor" stroke-width="3"/>
-      <circle cx="32" cy="32" r="8" fill="currentColor"/>
-    </svg>
-    <div>
-      <div class="brand-title">尖塔战报</div>
-      <div class="brand-sub">SPIRE CHRONICLE · AI 攀登记录</div>
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5 L13.4 6.5 L14.4 6.5 L15 11.5 L16.4 12.2 L17 17.8 L18.6 18.5 L19.2 22 L4.8 22 L5.4 18.5 L7 17.8 L7.6 12.2 L9 11.5 L9.6 6.5 L10.6 6.5 Z" fill="currentColor"/></svg>
+      </div>
+      <div>
+        <div class="brand-title">尖塔战报</div>
+        <div class="brand-sub">Spire Chronicle · AI 攀登记录</div>
+      </div>
     </div>
+    <nav class="tabs" id="tabs">
+      <button data-view="hall" class="active">对局</button>
+      <button data-view="replay">回放</button>
+      <button data-view="lore">知识库</button>
+      <button data-view="live"><span class="live-dot"></span>实时</button>
+    </nav>
   </div>
-  <nav class="tabs" id="tabs">
-    <button data-view="hall" class="active">⚔ 战报大厅</button>
-    <button data-view="replay">📜 对局回放</button>
-    <button data-view="lore">📖 知识典籍</button>
-    <button data-view="live"><span class="live-dot"></span> 实时观战</button>
-  </nav>
 </header>
 
 <main>
