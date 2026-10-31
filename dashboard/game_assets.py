@@ -18,6 +18,13 @@ ALLOWED_PREFIXES = ("images/", "title/", "cards/", "font/", "powers/", "bottomSc
 ALLOWED_EXTS = (".png", ".jpg", ".atlas", ".otf", ".ttf")
 
 CARD_COLORS = ("red", "green", "blue", "purple", "colorless", "curse", "status")
+# AbstractPotion.PotionSize / PotionColor values, as they appear in each potion class's constant pool.
+POTION_SHAPES = ("SPHERE", "BOTTLE", "HEART", "SNECKO", "FAIRY", "GHOST", "JAR", "BOLT", "CARD", "MOON", "SPIKY", "EYE",
+                 "ANVIL", "S", "M", "T", "H")
+POTION_COLORS = ("POISON", "BLUE", "FIRE", "GREEN", "EXPLOSIVE", "WEAK", "FEAR", "STRENGTH", "WHITE", "FAIRY", "ANCIENT",
+                 "ELIXIR", "ENERGY", "SWIFT", "FRUIT", "SNECKO", "SMOKE", "STEROID", "SKILL", "ATTACK", "POWER", "NONE")
+# Names that are also something else in a potion class (a shape, a card type, "no target"): used only when nothing else is.
+WEAK_COLOR_NAMES = ("NONE", "FAIRY", "ATTACK", "SKILL", "POWER")
 ATLAS_PAIRS = {"xy": ("x", "y"), "size": ("w", "h"), "orig": ("ow", "oh"), "offset": ("ox", "oy")}
 
 
@@ -113,7 +120,8 @@ class GameAssets:
             jar = self.jar()
             relic_ids = set(catalog.get("relics", {}))
             card_ids = set(catalog.get("cards", {}))
-            relics, cards = {}, {}
+            potion_ids = set(catalog.get("potions", {}))
+            relics, cards, potions = {}, {}, {}
             atlas = parse_atlas(jar.read("cards/cards.atlas").decode("utf-8"))
             for name in self._names:
                 if not name.endswith(".class") or "$" in name:
@@ -122,6 +130,8 @@ class GameAssets:
                     kind, ids = "relic", relic_ids
                 elif name.startswith("com/megacrit/cardcrawl/cards/"):
                     kind, ids = "card", card_ids
+                elif name.startswith("com/megacrit/cardcrawl/potions/"):
+                    kind, ids = "potion", potion_ids
                 else:
                     continue
                 strings = utf8_constants(jar.read(name))
@@ -132,13 +142,33 @@ class GameAssets:
                     png = next((s for s in strings if s.endswith(".png") and f"images/relics/{s}" in self._names), None)
                     if png:
                         relics[own] = f"images/relics/{png}"
+                elif kind == "potion":
+                    layers = self._potion_layers(strings)
+                    if layers:
+                        potions[own] = layers
                 else:
                     art = next((s for s in strings if s.split("/")[0] in CARD_COLORS and s in atlas), None)
                     if art:
                         r = atlas[art]
                         cards[own] = {"page": f"cards/{r['page']}", "x": r["x"], "y": r["y"], "w": r["w"], "h": r["h"]}
-            self._index = {"available": True, "relics": relics, "cards": cards}
+            self._index = {"available": True, "relics": relics, "cards": cards, "potions": potions}
         return self._index
+
+    def _potion_layers(self, strings):
+        """A potion's shape images and colour name. Small shapes (S/M/T/H) are flat files, the rest have folders."""
+        shapes = [s for s in strings if s in POTION_SHAPES]
+        # Prefer a named shape: one-letter strings can also be field descriptors.
+        shape = next((s for s in shapes if len(s) > 1), shapes[0] if shapes else None)
+        colors = [s for s in strings if s in POTION_COLORS]
+        color = next((c for c in colors if c not in WEAK_COLOR_NAMES), colors[-1] if colors else "NONE")
+        if not shape:
+            return None
+        if len(shape) == 1:
+            paths = {k: f"images/potion/potion_{shape.lower()}_{k}.png" for k in ("liquid", "hybrid", "spots", "glass")}
+        else:
+            base = f"images/potion/{shape.lower()}/"
+            paths = {k: base + f"{'body' if k == 'glass' else k}.png" for k in ("liquid", "hybrid", "spots", "glass")}
+        return {"color": color, **{k: v for k, v in paths.items() if v in self._names}}
 
     @staticmethod
     def _own_id(class_name, strings, ids):

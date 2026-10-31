@@ -455,11 +455,32 @@ function relicsHtml(relics) {
   }).join("");
 }
 
+// The game tints white liquid/hybrid/spots layers per PotionColor in code; these are close stand-ins for those tints.
+const POTION_TINT = {
+  POISON: ["#4bd13b", "#2a7f1f", "#b6ff7a"], BLUE: ["#3d7fe0", "#1c3f8f", "#9fd0ff"], FIRE: ["#ff5a1f", "#b8200f", "#ffd25a"],
+  GREEN: ["#3fbf5a", "#1e6e33", "#a8f0b0"], EXPLOSIVE: ["#ff9a1f", "#c8481a", "#fff07a"], WEAK: ["#9a6ad6", "#4d2f80", "#d9c2ff"],
+  FEAR: ["#3b2a52", "#1b1026", "#a36ad6"], STRENGTH: ["#d8302a", "#7a0f0f", "#ff9c8a"], WHITE: ["#e8e8e8", "#a9a9b0", "#ffffff"],
+  FAIRY: ["#ff8fd1", "#c24c9a", "#fff0fa"], ANCIENT: ["#e8c060", "#8a6420", "#fff2b0"], ELIXIR: ["#f0c040", "#9a6a10", "#fff3b5"],
+  ENERGY: ["#ffd23a", "#e08a10", "#fff7c0"], SWIFT: ["#36c7c0", "#157a78", "#b5fff7"], FRUIT: ["#ff7a4a", "#c03a2a", "#ffe08a"],
+  SNECKO: ["#8fb02a", "#4a6a10", "#e2f07a"], SMOKE: ["#5d5d68", "#2a2a33", "#a8a8b5"], STEROID: ["#c41e3a", "#5a0a18", "#ff7a8a"],
+  SKILL: ["#3fbf5a", "#1e6e33", "#a8f0b0"], ATTACK: ["#d8302a", "#7a0f0f", "#ff9c8a"], POWER: ["#3d7fe0", "#1c3f8f", "#9fd0ff"],
+  NONE: ["#9aa0a8", "#5d636b", "#d5d9de"],
+};
+
+function potionArt(id) {
+  const p = state.game.potions?.[id];
+  if (!p) return "";
+  const [liquid, hybrid, spots] = POTION_TINT[p.color] || POTION_TINT.NONE;
+  const tinted = (layer, color) => (p[layer] ? `<i style="background:${color};-webkit-mask-image:url(${G(p[layer])});mask-image:url(${G(p[layer])})"></i>` : "");
+  return `<div class="pot-art">${tinted("liquid", liquid)}${tinted("hybrid", hybrid)}${tinted("spots", spots)}${p.glass ? `<img src="${G(p.glass)}" alt="">` : ""}</div>`;
+}
+
 function potionsHtml(potions) {
   return (potions || []).map((p) => {
     if (p.id === "Potion Slot") return `<div class="potion empty">·</div>`;
     const info = state.catalog.potions[p.id];
-    return `<div class="potion" data-tip="${tipHtml(`${p.name}${info && info.name !== p.name ? ` (${info.name})` : ""}`, info?.rarity || "", info?.text || "")}">⚗</div>`;
+    const art = potionArt(p.id);
+    return `<div class="potion ${art ? "art" : ""}" data-tip="${tipHtml(`${p.name}${info && info.name !== p.name ? ` (${info.name})` : ""}`, info?.rarity || "", info?.text || "")}">${art || "⚗"}</div>`;
   }).join("");
 }
 
@@ -536,7 +557,7 @@ function screenHtml(gs) {
     case "BOSS_REWARD":
       return `<div class="battlefield"><div class="panel-title">Boss 遗物</div><div class="relics">${relicsHtml(s.relics)}</div>${optionsList((s.relics || []).map((r) => esc(`${r.name}：${state.catalog.relics[r.id]?.text || ""}`)))}</div>`;
     case "MAP":
-      return `<div class="battlefield"><div class="panel-title">选择下一层</div>${optionsList((s.next_nodes || []).map((n) => `${ROOM_ICON[n.symbol] || n.symbol} 第 ${n.x} 列`))}</div>`;
+      return `<div class="battlefield"><div class="panel-title">选择下一层</div>${optionsList((s.next_nodes || []).map((n) => `${MAP_ICON[n.symbol] && state.game.available ? gimg(`images/ui/map/${MAP_ICON[n.symbol]}.png`, "gico room") : ROOM_ICON[n.symbol] || n.symbol} 第 ${n.x} 列`))}</div>`;
     case "GAME_OVER":
       return `<div class="battlefield gameover">
         <div class="go-title" style="color:${s.victory ? "var(--gold)" : "#ff8a76"}">${s.victory ? "登顶成功" : "攀登终结"}</div>
