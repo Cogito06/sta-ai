@@ -32,18 +32,67 @@ const state = {
   hideTests: true,
 };
 
-// ---------- embers ----------
-(function embers() {
-  const box = $(".embers");
-  for (let i = 0; i < 28; i++) {
-    const e = document.createElement("i");
-    e.style.left = `${Math.random() * 100}%`;
-    e.style.animationDuration = `${9 + Math.random() * 14}s`;
-    e.style.animationDelay = `${-Math.random() * 20}s`;
-    e.style.setProperty("--drift", `${(Math.random() - 0.5) * 160}px`);
-    e.style.transform = `scale(${0.5 + Math.random()})`;
-    box.appendChild(e);
+// ---------- the spire behind the page ----------
+// A tall tower drawn once; scrolling down the page climbs it (the tower slides down so higher tiers come into view).
+(function tower() {
+  const box = $(".spire-bg");
+  const W = 600, H = 3000, top = 300, tiers = 13;
+  let rnd = 11;
+  const rand = () => ((rnd = (rnd * 9301 + 49297) % 233280) / 233280);
+  // Three acts from the ground up: mossy stone, warm city stone, the violet Beyond.
+  const zone = (f) => (f < 0.36 ? ["#18221f", "#22302b"] : f < 0.7 ? ["#1f1d1a", "#2b2823"] : ["#1a1826", "#252236"]);
+  let stars = "";
+  for (let k = 0; k < 90; k++) stars += `<circle cx="${rand() * W}" cy="${rand() * H * 0.8}" r="${0.6 + rand() * 1.1}" fill="#cfd8e6" opacity="${0.15 + rand() * 0.5}"/>`;
+  let body = "";
+  const xAt = (w) => [(W - w) / 2, (W + w) / 2];
+  for (let i = 0; i < tiers; i++) {
+    const f0 = i / tiers, f1 = (i + 1) / tiers;
+    const y0 = H - f0 * (H - top), y1 = H - f1 * (H - top) + 10;
+    const w0 = 330 - f0 * 270, w1 = 330 - f1 * 270 + 14;
+    const [dark, lit] = zone(f0);
+    const [a0, b0] = xAt(w0), [a1, b1] = xAt(w1);
+    body += `<path d="M${a0} ${y0} L${a1} ${y1} L${b1} ${y1} L${b0} ${y0} Z" fill="${dark}"/>`;
+    // light from the left: a lit face on the left third
+    body += `<path d="M${a0} ${y0} L${a1} ${y1} L${a1 + w1 * 0.32} ${y1} L${a0 + w0 * 0.32} ${y0} Z" fill="${lit}"/>`;
+    // stone courses
+    for (let y = y0 - 34; y > y1 + 10; y -= 34) {
+      const t = (y0 - y) / (y0 - y1), w = w0 + (w1 - w0) * t, [a, b] = xAt(w);
+      body += `<line x1="${a}" x2="${b}" y1="${y}" y2="${y}" stroke="#000" stroke-opacity=".22"/>`;
+    }
+    // buttresses at the foot of each tier
+    body += `<path d="M${a0 - 16} ${y0} L${a0 + 4} ${y0 - 70} L${a0 + 4} ${y0} Z" fill="${dark}"/><path d="M${b0 + 16} ${y0} L${b0 - 4} ${y0 - 70} L${b0 - 4} ${y0} Z" fill="${dark}"/>`;
+    // ledge with teeth
+    const lw = w1 + 26, [la] = xAt(lw);
+    body += `<rect x="${la}" y="${y1 - 8}" width="${lw}" height="9" fill="#2f3845"/>`;
+    for (let x = la + 4; x < la + lw - 8; x += 16) body += `<rect x="${x}" y="${y1 - 15}" width="8" height="8" fill="#2f3845"/>`;
+    // arched windows, a few lit
+    const n = 1 + Math.floor(rand() * 3);
+    for (let k = 0; k < n; k++) {
+      const wy = y1 + 40 + rand() * (y0 - y1 - 110), t = (y0 - wy) / (y0 - y1), w = (w0 + (w1 - w0) * t) * 0.6;
+      const wx = (W - w) / 2 + rand() * (w - 12), on = rand() < 0.6;
+      body += `<path d="M${wx} ${wy + 22} L${wx} ${wy + 6} A6 6 0 0 1 ${wx + 12} ${wy + 6} L${wx + 12} ${wy + 22} Z" fill="${on ? "#e7b55a" : "#0b0f15"}" opacity="${on ? 0.45 + rand() * 0.4 : 0.8}"/>`;
+    }
   }
+  const cx = W / 2;
+  const needle = `<path d="M${cx} ${top - 230} L${cx + 22} ${top + 20} L${cx - 22} ${top + 20} Z" fill="#252236"/><path d="M${cx} ${top - 230} L${cx - 22} ${top + 20} L${cx - 8} ${top + 20} Z" fill="#2e2a42"/>`;
+  const heart = `<g transform="translate(${cx} ${top - 270})"><circle r="90" fill="#e0453b" opacity=".06"/><circle r="46" fill="#e0453b" opacity=".1"/>
+    <path d="M0 24 C-28 4 -24 -20 -8 -20 C-2 -20 0 -14 0 -11 C0 -14 2 -20 8 -20 C24 -20 28 4 0 24 Z" fill="#a52b22"/></g>`;
+  const ground = `<rect x="0" y="${H - 6}" width="${W}" height="6" fill="#0b0f15"/>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}">${stars}${heart}${needle}${body}${ground}</svg>`;
+  const svg = box.querySelector("svg");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function place() {
+    const th = svg.getBoundingClientRect().height, vh = innerHeight;
+    const room = Math.max(1, document.documentElement.scrollHeight - vh);
+    const p = still ? 0 : Math.min(1, scrollY / room);
+    svg.style.transform = `translate(-50%, ${-(th - vh) * (1 - p)}px)`;
+  }
+  let queued = false;
+  const later = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; place(); }); } };
+  addEventListener("scroll", later, { passive: true });
+  addEventListener("resize", later);
+  new ResizeObserver(later).observe(document.body);
+  place();
 })();
 
 // ---------- tooltip ----------
@@ -139,8 +188,8 @@ function renderHall() {
 
 function runCard(r) {
   const cls = r.result === "胜利" ? "win" : r.result === "阵亡" ? "dead" : "";
-  const badge = r.result === "胜利" ? `<span class="badge win">♛ 登顶</span>`
-    : r.result === "阵亡" ? `<span class="badge dead">☠ 阵亡</span>` : `<span class="badge going">⏳ 进行中</span>`;
+  const badge = r.result === "胜利" ? `<span class="badge win">登顶</span>`
+    : r.result === "阵亡" ? `<span class="badge dead">阵亡</span>` : `<span class="badge going">进行中</span>`;
   const mem = r.memory === true ? `<span class="badge mem">记忆 开</span>` : r.memory === false ? `<span class="badge nomem">记忆 关</span>` : "";
   const pct = Math.min(100, ((r.floor || 0) / 55) * 100);
   return `
@@ -156,7 +205,7 @@ function runCard(r) {
         <div class="big-floor"><div class="n">${r.floor || 0}</div><div class="l">楼层</div></div>
         <div class="climb">
           <div class="climb-bar"><div class="climb-fill" style="width:${pct}%"></div></div>
-          <div class="climb-marks"><span style="left:0%">0</span><span style="left:${(17 / 55) * 100}%">幕二</span><span style="left:${(34 / 55) * 100}%">幕三</span><span style="left:${(51 / 55) * 100}%">心脏</span></div>
+          <div class="climb-marks"><span style="left:0%">0</span><span style="left:${(17 / 55) * 100}%">第二幕</span><span style="left:${(34 / 55) * 100}%">第三幕</span><span style="left:${(51 / 55) * 100}%">心脏</span></div>
         </div>
       </div>
       <div class="run-foot">
@@ -212,25 +261,25 @@ function renderReplayShell() {
           <div id="state-view"></div>
         </div>
         <div class="panel map">
-          <div class="panel-title">🗺 攀登路线</div>
+          <div class="panel-title">攀登路线</div>
           <div class="act-tabs" id="act-tabs"></div>
           <div id="map-view"></div>
         </div>
       </div>
       <div class="grid">
         <div class="panel chart">
-          <div class="panel-title">❤ 生命曲线 <span class="muted" style="font-size:12px;font-weight:400">点击跳转</span></div>
+          <div class="panel-title">生命曲线 <span class="muted" style="font-size:12px;font-weight:400">点击跳转</span></div>
           <div id="chart"></div>
         </div>
         ${memo.plan || memo.route || (memo.notes || []).length ? `
         <div class="panel">
-          <div class="panel-title">✒ 本局笔记</div>
+          <div class="panel-title">本局笔记</div>
           ${memo.plan ? `<div class="memo"><b>构筑计划</b>（F${memo.plan.floor}）\n${esc(memo.plan.text)}</div>` : ""}
           ${memo.route ? `<div class="memo"><b>路线</b>（F${memo.route.floor}）\n${esc(memo.route.text)}</div>` : ""}
           ${(memo.notes || []).map((n) => `<div class="memo">${esc(n.text || n)}</div>`).join("")}
         </div>` : ""}
         <div class="panel">
-          <div class="panel-title">📜 行动日志</div>
+          <div class="panel-title">行动日志</div>
           <div class="log-list" id="log-list">${run.log.map(logItem).join("")}</div>
         </div>
       </div>
@@ -414,31 +463,31 @@ function screenHtml(gs) {
   const s = gs.screen_state || {};
   switch (gs.screen_type) {
     case "EVENT":
-      return `<div class="battlefield"><div class="panel-title">❖ ${esc(s.event_name || "事件")}</div>
-        <div style="white-space:pre-wrap;color:#d9ccb8">${esc((s.body_text || "").replace(/#[a-z]|~|@/g, ""))}</div>
+      return `<div class="battlefield"><div class="panel-title">${esc(s.event_name || "事件")}</div>
+        <div style="white-space:pre-wrap;color:var(--text)">${esc((s.body_text || "").replace(/#[a-z]|~|@/g, ""))}</div>
         ${optionsList((s.options || []).map((o) => `${o.disabled ? "🔒 " : ""}${esc(o.text || o.label)}`))}</div>`;
     case "CARD_REWARD":
-      return `<div class="battlefield"><div class="panel-title">🂠 选一张牌</div><div class="hand">${(s.cards || []).map((c) => cardHtml(c)).join("")}</div></div>`;
+      return `<div class="battlefield"><div class="panel-title">选一张牌</div><div class="hand">${(s.cards || []).map((c) => cardHtml(c)).join("")}</div></div>`;
     case "GRID":
     case "HAND_SELECT":
-      return `<div class="battlefield"><div class="panel-title">🂠 选择卡牌 ${s.num_cards ? `（${s.num_cards} 张）` : ""}</div><div class="hand">${(s.cards || s.hand || []).map((c) => cardHtml(c)).join("")}</div></div>`;
+      return `<div class="battlefield"><div class="panel-title">选择卡牌 ${s.num_cards ? `（${s.num_cards} 张）` : ""}</div><div class="hand">${(s.cards || s.hand || []).map((c) => cardHtml(c)).join("")}</div></div>`;
     case "COMBAT_REWARD":
-      return `<div class="battlefield"><div class="panel-title">🏆 战利品</div>${optionsList((s.rewards || []).map((r) => esc(
+      return `<div class="battlefield"><div class="panel-title">战利品</div>${optionsList((s.rewards || []).map((r) => esc(
         r.type === "GOLD" || r.type === "STOLEN_GOLD" ? `💰 ${r.gold} 金币` : r.type === "POTION" ? `⚗ ${r.potion?.name}` : r.type === "RELIC" ? `◆ ${r.relic?.name}` : r.type === "CARD" ? "🂠 卡牌奖励" : r.type)))}</div>`;
     case "SHOP_SCREEN":
-      return `<div class="battlefield"><div class="panel-title">💰 商店</div>
+      return `<div class="battlefield"><div class="panel-title">商店</div>
         <div class="hand">${(s.cards || []).map((c) => `<div>${cardHtml(c)}<div style="text-align:center;color:var(--gold2)">${c.price}g</div></div>`).join("")}</div>
         ${optionsList([...(s.relics || []).map((r) => `◆ ${esc(r.name)} — ${r.price}g`), ...(s.potions || []).map((p) => `⚗ ${esc(p.name)} — ${p.price}g`), s.purge_available ? `✂ 删牌 — ${s.purge_cost}g` : ""].filter(Boolean))}</div>`;
     case "REST":
-      return `<div class="battlefield"><div class="panel-title">🔥 篝火</div>${optionsList((s.rest_options || []).map((o) => esc({ rest: "休息", smith: "锻造", lift: "举重", dig: "挖掘", recall: "回忆", toke: "吸烟", key: "钥匙" }[o] || o)))}</div>`;
+      return `<div class="battlefield"><div class="panel-title">篝火</div>${optionsList((s.rest_options || []).map((o) => esc({ rest: "休息", smith: "锻造", lift: "举重", dig: "挖掘", recall: "回忆", toke: "吸烟", key: "钥匙" }[o] || o)))}</div>`;
     case "BOSS_REWARD":
-      return `<div class="battlefield"><div class="panel-title">♛ Boss 遗物</div><div class="relics">${relicsHtml(s.relics)}</div>${optionsList((s.relics || []).map((r) => esc(`${r.name}：${state.catalog.relics[r.id]?.text || ""}`)))}</div>`;
+      return `<div class="battlefield"><div class="panel-title">Boss 遗物</div><div class="relics">${relicsHtml(s.relics)}</div>${optionsList((s.relics || []).map((r) => esc(`${r.name}：${state.catalog.relics[r.id]?.text || ""}`)))}</div>`;
     case "MAP":
-      return `<div class="battlefield"><div class="panel-title">🗺 选择下一层</div>${optionsList((s.next_nodes || []).map((n) => `${ROOM_ICON[n.symbol] || n.symbol} 第 ${n.x} 列`))}</div>`;
+      return `<div class="battlefield"><div class="panel-title">选择下一层</div>${optionsList((s.next_nodes || []).map((n) => `${ROOM_ICON[n.symbol] || n.symbol} 第 ${n.x} 列`))}</div>`;
     case "GAME_OVER":
       return `<div class="battlefield" style="text-align:center;padding:30px">
-        <div style="font-family:var(--brush);font-size:44px;letter-spacing:6px;color:${s.victory ? "var(--gold2)" : "#ff8a73"}">${s.victory ? "登顶成功" : "攀登终结"}</div>
-        <div style="font-family:var(--num);font-size:30px;font-weight:700;margin-top:6px">分数 ${s.score ?? "?"}</div></div>`;
+        <div style="font-family:var(--serif);font-weight:700;font-size:40px;color:${s.victory ? "var(--gold2)" : "#ff8a73"}">${s.victory ? "登顶成功" : "攀登终结"}</div>
+        <div style="font-family:var(--serif);font-size:24px;font-weight:700;margin-top:6px">分数 ${s.score ?? "?"}</div></div>`;
     default:
       return `<div class="battlefield muted">${esc(SCREEN_NAME[gs.screen_type] || gs.screen_type || "")}</div>`;
   }
@@ -577,11 +626,11 @@ async function loadLore() {
 
 function renderLore(tab, sub) {
   const k = state.knowledge;
-  const tabs = [["lessons", `📜 经验卷轴 (${k.lessons.length})`], ["guides", `📖 攻略典籍 (${k.guides.length})`], ["patches", `🧪 评测补丁 (${k.patches.length})`], ["eval", "⚖ 评测记录"]];
+  const tabs = [["lessons", `经验 (${k.lessons.length})`], ["guides", `攻略 (${k.guides.length})`], ["patches", `评测补丁 (${k.patches.length})`], ["eval", "评测记录"]];
   let body = "";
   if (tab === "lessons") {
     body = `<div class="grid scrolls">${k.lessons.map((l, i) => `
-      <div class="scroll"><span class="num">№ ${i + 1}</span>${esc(l.text)}
+      <div class="scroll"><span class="num">经验 ${i + 1}</span>${esc(l.text)}
         <div class="src"><span>F${l.floor ?? "?"}</span><span>${esc(l.run || "")}</span></div></div>`).join("") || `<div class="empty">还没有经验</div>`}</div>`;
   } else if (tab === "guides") {
     const g = k.guides.find((x) => x.topic === sub) || k.guides[0];
@@ -600,7 +649,7 @@ function renderLore(tab, sub) {
   $("#view-lore").innerHTML = `
     <h1 class="section-title">知识典籍<small>CODEX</small></h1>
     <div class="lore-tabs">${tabs.map(([id, name]) => `<button class="btn ${id === tab ? "active" : ""}" data-lore="${id}">${name}</button>`).join("")}
-      <button class="btn small" id="lore-reload" style="margin-left:auto">↻ 刷新</button></div>
+      <button class="btn small" id="lore-reload" style="margin-left:auto">刷新</button></div>
     ${body}`;
   $("#view-lore").onclick = (ev) => {
     const t = ev.target.closest("[data-lore]");
@@ -651,7 +700,7 @@ async function pollLive() {
     </div>
     <div class="grid replay-grid">
       <div class="panel">${raw ? renderState(raw) : `<div class="empty">等待游戏状态…</div>`}</div>
-      <div class="panel"><div class="panel-title">📜 最近行动</div><div class="log-list">${info.recent.slice().reverse().map(logItem).join("")}</div></div>
+      <div class="panel"><div class="panel-title">最近行动</div><div class="log-list">${info.recent.slice().reverse().map(logItem).join("")}</div></div>
     </div>`;
   $("#live-open").onclick = async () => { await refreshRuns(); await openRun(info.run); show("replay"); };
   if (!summary) refreshRuns();
