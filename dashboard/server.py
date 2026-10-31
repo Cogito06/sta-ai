@@ -253,6 +253,107 @@ def catalog():
     return out
 
 
+FIGHT_ROOMS = {"MonsterRoom", "MonsterRoomElite", "MonsterRoomBoss", "EventRoom"}
+_fight_cache = {}
+
+
+def run_fights(run_dir):
+    """Every fight in a run: floor, room, the monsters seen, HP at start and at the last combat state."""
+    mtime = log_mtime(run_dir)
+    cached = _fight_cache.get(run_dir.name)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    fights, cur = [], None
+
+    def close(next_gs):
+        over = (next_gs or {}).get("screen_type") == "GAME_OVER"
+        cur["died"] = cur["end_hp"] <= 0 or (over and not ((next_gs.get("screen_state") or {}).get("victory")))
+        cur["loss"] = max(0, cur["start_hp"] - max(cur["end_hp"], 0))
+        fights.append(cur)
+
+    for path in raw_files(run_dir):
+        gs = game_state(read_json(path))
+        combat = gs.get("combat_state") or {}
+        if gs.get("room_type") in FIGHT_ROOMS and combat.get("monsters"):
+            if cur and cur["floor"] != gs.get("floor"):
+                close(gs)
+                cur = None
+            if cur is None:
+                cur = {"run": run_dir.name, "floor": gs.get("floor"), "act": gs.get("act"), "room": gs.get("room_type"),
+                       "ascension": gs.get("ascension_level"), "start_hp": gs.get("current_hp") or 0,
+                       "max_hp": gs.get("max_hp"), "monsters": {}, "turns": 0}
+            cur["end_hp"] = gs.get("current_hp") or 0
+            cur["turns"] = max(cur["turns"], combat.get("turn") or 0)
+            for m in combat["monsters"]:
+                seen = cur["monsters"].setdefault(m["id"], {"name": m.get("name"), "max_hp": 0, "hits": {}, "powers": set()})
+                seen["max_hp"] = max(seen["max_hp"], m.get("max_hp") or 0)
+                intent = m.get("intent") or ""
+                if intent and intent not in ("DEBUG", "NONE"):
+                    dmg = m.get("move_adjusted_damage") or 0
+                    hits = m.get("move_hits") or 1
+                    best = seen["hits"].get(intent, (0, 1))
+                    if dmg * hits > best[0] * best[1]:
+                        best = (dmg, hits)
+                    seen["hits"][intent] = best
+                seen["powers"].update(p.get("name") or p.get("id") for p in m.get("powers") or [])
+        elif cur:
+            close(gs)
+            cur = None
+    if cur:
+        close(None)
+    _fight_cache[run_dir.name] = (mtime, fights)
+    return fights
+
+
+# Risk tiers from observed cost: average share of max HP lost per fight, plus a penalty per death caused.
+RISK_TIERS = [(10, 1), (20, 2), (32, 3), (48, 4)]
+
+
+def risk_tier(avg_loss_pct, death_rate):
+    score = avg_loss_pct + 40 * death_rate
+    return next((tier for limit, tier in RISK_TIERS if score < limit), 5)
+
+
+def bestiary():
+    entries = {}
+    for run_dir in run_dirs():
+        for fight in run_fights(run_dir):
+            pct = 100 * fight["loss"] / fight["max_hp"] if fight.get("max_hp") else 0
+            for mid, seen in fight["monsters"].items():
+                e = entries.setdefault(mid, {"id": mid, "names": set(), "max_hp": 0, "rooms": set(), "acts": set(),
+                                             "fights": [], "hits": {}, "powers": set()})
+                e["names"].add(seen["name"])
+                e["max_hp"] = max(e["max_hp"], seen["max_hp"])
+                e["rooms"].add(fight["room"])
+                e["acts"].add(fight["act"])
+                e["powers"] |= seen["powers"]
+                for intent, (dmg, hits) in seen["hits"].items():
+                    old = e["hits"].get(intent, (0, 1))
+                    if dmg * hits > old[0] * old[1]:
+                        e["hits"][intent] = (dmg, hits)
+                e["fights"].append({"run": fight["run"], "floor": fight["floor"], "room": fight["room"], "turns": fight["turns"],
+                                    "loss": fight["loss"], "pct": round(pct, 1), "died": fight["died"],
+                                    "with": sorted(s["name"] for k, s in fight["monsters"].items() if k != mid)})
+    out = []
+    for e in entries.values():
+        fights = e["fights"]
+        avg_pct = sum(f["pct"] for f in fights) / len(fights)
+        deaths = sum(f["died"] for f in fights)
+        out.append({
+            "id": e["id"], "names": sorted(n for n in e["names"] if n), "max_hp": e["max_hp"],
+            "rooms": sorted(e["rooms"]), "acts": sorted(a for a in e["acts"] if a),
+            "encounters": len(fights), "runs": len({f["run"] for f in fights}), "deaths": deaths,
+            "avg_loss": round(sum(f["loss"] for f in fights) / len(fights), 1), "avg_pct": round(avg_pct, 1),
+            "worst": max(f["loss"] for f in fights), "avg_turns": round(sum(f["turns"] for f in fights) / len(fights), 1),
+            "tier": risk_tier(avg_pct, deaths / len(fights)),
+            "hits": [{"intent": k, "damage": d, "times": h} for k, (d, h) in sorted(e["hits"].items(), key=lambda kv: -kv[1][0] * kv[1][1])],
+            "powers": sorted(p for p in e["powers"] if p),
+            "fights": sorted(fights, key=lambda f: (f["run"], f["floor"] or 0)),
+        })
+    out.sort(key=lambda e: (-e["tier"], -e["encounters"]))
+    return out
+
+
 def live():
     dirs = run_dirs()
     if not dirs:
@@ -312,6 +413,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send_json(data) if data else self.send_json({"error": "no such step"}, 404)
         if route == ["knowledge"]:
             return self.send_json(knowledge())
+        if route == ["bestiary"]:
+            return self.send_json(bestiary())
         if route == ["catalog"]:
             return self.send_json(catalog())
         if route == ["live"]:
