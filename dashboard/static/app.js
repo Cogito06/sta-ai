@@ -39,6 +39,69 @@ const pageHead = (crumbs, title, small, desc) => `
     ${desc ? `<p class="page-desc">${esc(desc)}</p>` : ""}
   </div>`;
 
+// ---------- the spire behind the page ----------
+// A tall tower drawn once; scrolling down the page climbs it (the tower slides down so higher tiers come into view).
+(function tower() {
+  const box = $(".spire-bg");
+  const W = 600, H = 3000, top = 300, tiers = 13;
+  let rnd = 11;
+  const rand = () => ((rnd = (rnd * 9301 + 49297) % 233280) / 233280);
+  // Three acts from the ground up: mossy stone, warm city stone, the violet Beyond.
+  const zone = (f) => (f < 0.36 ? ["#18221f", "#22302b"] : f < 0.7 ? ["#1f1d1a", "#2b2823"] : ["#1a1826", "#252236"]);
+  let stars = "";
+  for (let k = 0; k < 90; k++) stars += `<circle cx="${rand() * W}" cy="${rand() * H * 0.8}" r="${0.6 + rand() * 1.1}" fill="#cfd8e6" opacity="${0.15 + rand() * 0.5}"/>`;
+  let body = "";
+  const xAt = (w) => [(W - w) / 2, (W + w) / 2];
+  for (let i = 0; i < tiers; i++) {
+    const f0 = i / tiers, f1 = (i + 1) / tiers;
+    const y0 = H - f0 * (H - top), y1 = H - f1 * (H - top) + 10;
+    const w0 = 330 - f0 * 270, w1 = 330 - f1 * 270 + 14;
+    const [dark, lit] = zone(f0);
+    const [a0, b0] = xAt(w0), [a1, b1] = xAt(w1);
+    body += `<path d="M${a0} ${y0} L${a1} ${y1} L${b1} ${y1} L${b0} ${y0} Z" fill="${dark}"/>`;
+    // light from the left: a lit face on the left third
+    body += `<path d="M${a0} ${y0} L${a1} ${y1} L${a1 + w1 * 0.32} ${y1} L${a0 + w0 * 0.32} ${y0} Z" fill="${lit}"/>`;
+    // stone courses
+    for (let y = y0 - 34; y > y1 + 10; y -= 34) {
+      const t = (y0 - y) / (y0 - y1), w = w0 + (w1 - w0) * t, [a, b] = xAt(w);
+      body += `<line x1="${a}" x2="${b}" y1="${y}" y2="${y}" stroke="#000" stroke-opacity=".22"/>`;
+    }
+    // buttresses at the foot of each tier
+    body += `<path d="M${a0 - 16} ${y0} L${a0 + 4} ${y0 - 70} L${a0 + 4} ${y0} Z" fill="${dark}"/><path d="M${b0 + 16} ${y0} L${b0 - 4} ${y0 - 70} L${b0 - 4} ${y0} Z" fill="${dark}"/>`;
+    // ledge with teeth
+    const lw = w1 + 26, [la] = xAt(lw);
+    body += `<rect x="${la}" y="${y1 - 8}" width="${lw}" height="9" fill="#2f3845"/>`;
+    for (let x = la + 4; x < la + lw - 8; x += 16) body += `<rect x="${x}" y="${y1 - 15}" width="8" height="8" fill="#2f3845"/>`;
+    // arched windows, a few lit
+    const n = 1 + Math.floor(rand() * 3);
+    for (let k = 0; k < n; k++) {
+      const wy = y1 + 40 + rand() * (y0 - y1 - 110), t = (y0 - wy) / (y0 - y1), w = (w0 + (w1 - w0) * t) * 0.6;
+      const wx = (W - w) / 2 + rand() * (w - 12), on = rand() < 0.6;
+      body += `<path d="M${wx} ${wy + 22} L${wx} ${wy + 6} A6 6 0 0 1 ${wx + 12} ${wy + 6} L${wx + 12} ${wy + 22} Z" fill="${on ? "#e7b55a" : "#0b0f15"}" opacity="${on ? 0.45 + rand() * 0.4 : 0.8}"/>`;
+    }
+  }
+  const cx = W / 2;
+  const needle = `<path d="M${cx} ${top - 230} L${cx + 22} ${top + 20} L${cx - 22} ${top + 20} Z" fill="#252236"/><path d="M${cx} ${top - 230} L${cx - 22} ${top + 20} L${cx - 8} ${top + 20} Z" fill="#2e2a42"/>`;
+  const heart = `<g transform="translate(${cx} ${top - 270})"><circle r="90" fill="#e0453b" opacity=".06"/><circle r="46" fill="#e0453b" opacity=".1"/>
+    <path d="M0 24 C-28 4 -24 -20 -8 -20 C-2 -20 0 -14 0 -11 C0 -14 2 -20 8 -20 C24 -20 28 4 0 24 Z" fill="#a52b22"/></g>`;
+  const ground = `<rect x="0" y="${H - 6}" width="${W}" height="6" fill="#0b0f15"/>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}">${stars}${heart}${needle}${body}${ground}</svg>`;
+  const svg = box.querySelector("svg");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function place() {
+    const th = svg.getBoundingClientRect().height, vh = innerHeight;
+    const room = Math.max(1, document.documentElement.scrollHeight - vh);
+    const p = still ? 0 : Math.min(1, scrollY / room);
+    svg.style.transform = `translate(-50%, ${-(th - vh) * (1 - p)}px)`;
+  }
+  let queued = false;
+  const later = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; place(); }); } };
+  addEventListener("scroll", later, { passive: true });
+  addEventListener("resize", later);
+  new ResizeObserver(later).observe(document.body);
+  place();
+})();
+
 // ---------- tooltip ----------
 const tip = $("#tooltip");
 document.addEventListener("mouseover", (ev) => {

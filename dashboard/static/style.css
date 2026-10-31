@@ -337,3 +337,60 @@ tr.win .track i { background: var(--gold); }
   .brand-sub { display: none; }
   main { padding: 16px; }
 }
+
+/* ===== Slay the Spire theme: the game's own colours over the wiki layout, and the spire behind the page ===== */
+:root {
+  --bg: #0b0f15;
+  --surface: rgba(20, 27, 36, .9);
+  --surface2: rgba(29, 39, 51, .92);
+  --surface3: #26313f;
+  --line: #2c3a4a;
+  --line2: #46596d;
+  --text: #ebe6da;
+  --muted: #98a0a8;
+  --faint: #66707b;
+  --accent: #e0453b;          /* HP red */
+  --gold: #efc851;            /* the game's keyword gold */
+  --blue: #6fb1e0;            /* block */
+  --green: #7fd16b;           /* upgraded card */
+  --attack: #b5442f; --skill: #4e8a4a; --power: #3f74a8; --curse: #6a4a86; --status: #5f646b;
+  --parch: #d8c8a4; --parch-ink: #3b2b1a;
+  --serif: "Noto Serif SC", "Songti SC", "STSong", ui-serif, serif;
+  --sans: "Inter", "Avenir Next", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+body { background: linear-gradient(180deg, #0d1420 0%, #0b0f15 60%) fixed, #0b0f15; font-size: 15px; line-height: 1.65; }
+a { color: var(--gold); }
+.spire-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.spire-bg svg { position: absolute; left: 50%; top: 0; width: min(760px, 90vw); height: auto; transform: translate(-50%, 0); will-change: transform; }
+.spire-bg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 90% at 50% 50%, transparent 30%, rgba(11,15,21,.8) 100%); }
+.topbar, main { position: relative; z-index: 1; }
+.topbar { position: sticky; z-index: 10; background: rgba(12, 17, 24, .94); }
+.logo { background: none; color: var(--gold); }
+.logo svg { width: 24px; height: 24px; }
+.brand-title, .section-title, .panel-title, .wiki h1, .wiki h2, .wiki h3, .infobox .ib-title { font-family: var(--serif); letter-spacing: 0; }
+.brand-title { font-weight: 700; font-size: 18px; }
+.section-title { font-weight: 700; font-size: 30px; }
+.panel-title { font-weight: 600; }
+.tabs button.active { color: var(--gold); }
+.tabs button.active::after { background: var(--gold); }
+.panel, .tip-card, .infobox, .table-wrap, .stat { backdrop-filter: blur(3px); }
+.stat .num { font-family: var(--serif); font-weight: 700; }
+.wiki h2 { color: var(--gold); }
+.tip-card .tip-head b { color: var(--gold); font-family: var(--serif); }
+/* the game's tooltip: dark box, gold title */
+.tooltip { background: rgba(14, 19, 26, .97); border: 1px solid var(--line2); }
+.tooltip .tt-title { color: var(--gold); }
+/* card frames by type, cost orb like the game */
+.card.SKILL { --frame: var(--skill); }
+/* the parchment map */
+.panel.map, .map { background: var(--parch); border-color: #a99470; box-shadow: inset 0 0 30px rgba(90,60,20,.35); backdrop-filter: none; }
+.map .panel-title { color: var(--parch-ink); border-bottom-color: rgba(59,43,26,.3); }
+.map .edge { stroke: rgba(59,43,26,.35); }
+.map .edge.walk { stroke: var(--parch-ink); stroke-width: 2.5; stroke-dasharray: none; filter: none; }
+.map .node circle { fill: var(--parch); stroke: rgba(59,43,26,.55); }
+.map .node.walk circle { fill: #c5b089; stroke: var(--parch-ink); }
+.map .node.here circle { stroke: #a3261c; stroke-width: 3; }
+.map .node text { fill: var(--parch-ink); }
+.map .node.E circle { stroke: #a3261c; }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+.panel-title { font-size: 15px; text-transform: none; color: var(--text); }
