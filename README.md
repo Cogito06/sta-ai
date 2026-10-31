@@ -23,3 +23,9 @@ The game side is a modified copy of [CommunicationMod](https://github.com/Forgot
 
 `python bridge/try_session.py` plays a few steps without Claude to check the connection.
 `python -m unittest discover -s tests -t .` runs the tests on recorded states.
+
+## Dashboard
+
+`python -m dashboard.server`, then open http://localhost:8780 — a read-only web page over `runs/`,
+`runs/lessons.json`, `guides/` and the eval patches: run list, step-by-step replay (state, map route,
+HP curve, action log), lessons/guides/eval record, and a live view of the newest run.
