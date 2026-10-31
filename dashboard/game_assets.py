@@ -4,6 +4,7 @@ Nothing here is copied into the repo: every image is read out of desktop-1.0.jar
 for it. Point STS_GAME_DIR (or --game-dir) at the install folder when it is not in the default
 Steam library. Without the game the dashboard still works, it just shows no game art.
 """
+import json
 import os
 import re
 import struct
@@ -14,7 +15,7 @@ from pathlib import Path
 DEFAULT_GAME_DIR = r"E:\SteamLibrary\steamapps\common\SlayTheSpire"
 
 # Only art, atlases and fonts leave the jar; never classes or other files.
-ALLOWED_PREFIXES = ("images/", "title/", "cards/", "font/", "powers/", "bottomScene/", "cityScene/", "beyondScene/")
+ALLOWED_PREFIXES = ("images/", "title/", "cards/", "cardui/", "font/", "powers/", "bottomScene/", "cityScene/", "beyondScene/")
 ALLOWED_EXTS = (".png", ".jpg", ".atlas", ".otf", ".ttf")
 
 CARD_COLORS = ("red", "green", "blue", "purple", "colorless", "curse", "status")
@@ -275,8 +276,16 @@ class GameAssets:
                     art = next((s for s in strings if s.split("/")[0] in CARD_COLORS and s in atlas), None)
                     if art:
                         r = atlas[art]
-                        cards[own] = {"page": f"cards/{r['page']}", "x": r["x"], "y": r["y"], "w": r["w"], "h": r["h"]}
-            self._index = {"available": True, "relics": relics, "cards": cards, "potions": potions}
+                        cards[own] = {"page": f"cards/{r['page']}", **{k: r[k] for k in ("x", "y", "w", "h", "ow", "oh", "ox", "oy")}}
+            # The card frame pieces (background, frame, banner, cost orb, type plate) at their 512px layout.
+            cardui = {name[4:]: {**r, "page": f"cardui/{r['page']}"}
+                      for name, r in parse_atlas(jar.read("cardui/cardui.atlas").decode("utf-8")).items() if name.startswith("512/")}
+            # The Chinese card texts and keyword glossary, as the game shows them.
+            texts = json.loads(jar.read("localization/zhs/cards.json").decode("utf-8"))
+            words = json.loads(jar.read("localization/zhs/keywords.json").decode("utf-8")).get("Game Dictionary", {})
+            self._index = {"available": True, "relics": relics, "cards": cards, "potions": potions, "cardui": cardui,
+                           "card_text": {k: v for k, v in texts.items() if k in card_ids},
+                           "keywords": [{"names": w.get("NAMES", []), "text": w.get("DESCRIPTION", "")} for w in words.values() if isinstance(w, dict)]}
         return self._index
 
     def _potion_layers(self, strings, data):
