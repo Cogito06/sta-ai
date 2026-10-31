@@ -156,7 +156,7 @@ function runCard(r) {
       <td>${r.hp ?? "?"}<span class="muted">/${r.max_hp ?? "?"}</span></td>
       <td>${r.gold ?? "?"}</td>
       <td>${r.steps}</td>
-      <td>${duration(r.started, r.ended)}</td>
+      <td class="txt">${duration(r.started, r.ended)}</td>
       <td class="muted">${esc(fmtDate(r.started))}</td>
     </tr>`;
 }

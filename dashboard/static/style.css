@@ -27,9 +27,11 @@
   --curse: #9a6fd0;
   --status: #77736a;
   --radius: 0px;
-  --sans: "Rajdhani", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --body: "Noto Sans SC", "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  /* Type: serif for the voice (titles), sans for the interface, mono for anything checkable. */
+  --serif: "Noto Serif SC", "Songti SC", STSong, ui-serif, serif;
+  --sans: "Avenir Next", "SF Pro Text", -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --body: var(--sans);
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Noto Sans SC", monospace;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -460,3 +462,38 @@ tr.win .track i, .track i.win { background: var(--amber); }
 .tooltip .tt-title { color: var(--amber); }
 .live-dot { border-radius: 0; background: var(--accent); }
 .gameover .go-title { letter-spacing: .3em; }
+/* ================= type system ================= */
+body { font-size: 14.5px; line-height: 1.7; font-feature-settings: normal; }
+h1, h2, h3, .section-title, .brand-title, .wiki h1, .wiki h2, .wiki h3, .infobox .ib-title, .gameover .go-title { text-wrap: balance; }
+/* Title: serif 600, tight */
+.section-title { font-family: var(--serif); font-weight: 600; font-size: 30px; line-height: 36px; letter-spacing: -.01em; }
+.brand-title { font-family: var(--serif); font-weight: 700; font-size: 18px; letter-spacing: .02em; }
+.wiki h1 { font-family: var(--serif); font-weight: 600; font-size: 24px; line-height: 32px; letter-spacing: -.01em; }
+.wiki h2 { font-family: var(--serif); font-weight: 600; font-size: 19px; line-height: 28px; }
+.wiki h3 { font-family: var(--serif); font-weight: 600; }
+.infobox .ib-title { font-family: var(--serif); font-weight: 600; text-transform: none; letter-spacing: .02em; font-size: 16px; }
+.gameover .go-title { font-family: var(--serif); font-weight: 700; font-size: 32px; letter-spacing: .08em; }
+/* Eyebrow: sans 600, 11.5px, tracked .22em, uppercase */
+.crumbs, .brand-sub, .section-title small, .panel-title, table.data th, .stat .lbl, .toc .toc-title,
+.tabs button .en, .memo b, .tip-card .tip-head, .infobox .ib-row span:first-child, .wiki th {
+  font-family: var(--sans); font-weight: 600; font-size: 11.5px; letter-spacing: .22em; text-transform: uppercase; line-height: 1.6;
+}
+.panel-title { font-size: 12px; }
+.panel-title .hint { font-family: var(--sans); font-size: 12px; letter-spacing: .04em; text-transform: none; font-weight: 500; }
+.tabs button { font-family: var(--sans); font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: none; }
+.btn, .chip, .badge, .intent, .filters input[type=search] { font-family: var(--sans); letter-spacing: .04em; text-transform: none; }
+.page-desc { font-size: 13px; line-height: 20px; }
+.sub { font-family: var(--sans); }
+/* Data: mono, 13/20 — seeds, numbers, steps, run ids */
+.stat .num, .seed, table.data td, .floorbar b, .step-label, .hpbar .txt, .energy, .card .cost, .relic,
+.stat-pill, .log-item .sn, .log-item .floor, .log-item .act, .diff, .wiki code, .price, .chart text, .gameover .go-score {
+  font-family: var(--mono);
+}
+table.data td { font-size: 13px; line-height: 20px; font-weight: 500; }
+table.data td .sub { font-family: var(--sans); font-size: 11.5px; letter-spacing: .12em; }
+.seed { font-size: 14px; font-weight: 600; letter-spacing: 0; }
+.stat .num { font-size: 34px; font-weight: 600; letter-spacing: -.02em; }
+.step-label { font-size: 13px; letter-spacing: 0; }
+.memo, .tip-card p, .wiki { font-family: var(--sans); }
+.tip-card p { font-size: 14px; line-height: 1.75; }table.data td.txt { font-family: var(--sans); font-size: 13.5px; }
+.step-label, .stat-pill { font-family: var(--sans); font-weight: 600; letter-spacing: .02em; }
