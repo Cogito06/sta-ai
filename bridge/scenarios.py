@@ -85,6 +85,15 @@ def golden_idol(session, check):
     check.expect("New relic: Golden Idol" in out, "taking the idol names the new relic")
 
 
+def council_of_ghosts(session, check):
+    fresh_run(session)
+    dev(session, "event Ghosts")
+    before = deck_size(session)
+    out = session.act("choose 0")
+    check.log.append(out.splitlines()[0])
+    check.expect(deck_size(session) > before, f"Apparitions reached the deck ({before} -> {deck_size(session)})")
+
+
 def awakened_one(session, check):
     fresh_run(session)
     dev(session, "fight Awakened One")
@@ -114,7 +123,7 @@ def deck_view(session, check):
     dev(session, "kill all")
 
 
-SCENARIOS = {"duplicator": duplicator, "golden_idol": golden_idol, "awakened_one": awakened_one, "deck_view": deck_view}
+SCENARIOS = {"duplicator": duplicator, "golden_idol": golden_idol, "council_of_ghosts": council_of_ghosts, "awakened_one": awakened_one, "deck_view": deck_view}
 
 
 def main(names):

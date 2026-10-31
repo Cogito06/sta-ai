@@ -345,9 +345,9 @@ class Session:
             screen = game_state(before).get("screen_type")
             picked = self.picked_card(before, args)
             self.choose(args)
-            if screen == "GRID" and game_state(self.message).get("screen_type") != "GRID":
-                # The grid closed by itself (e.g. Duplicator): cards are added to the deck by a short
-                # animation, and leaving the room before it ends loses them.
+            if screen == "GRID" and game_state(self.message).get("screen_type") != "GRID" or screen == "EVENT":
+                # Cards an event or a self-closing grid gives (Duplicator, Council of Ghosts) are added
+                # to the deck by a short animation, and leaving the room before it ends loses them.
                 self.settle()
             if picked:
                 result.append(f"Selected {picked}.")
