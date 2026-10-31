@@ -437,8 +437,8 @@ function screenHtml(gs) {
       return `<div class="battlefield"><div class="panel-title">🗺 选择下一层</div>${optionsList((s.next_nodes || []).map((n) => `${ROOM_ICON[n.symbol] || n.symbol} 第 ${n.x} 列`))}</div>`;
     case "GAME_OVER":
       return `<div class="battlefield" style="text-align:center;padding:30px">
-        <div style="font-family:var(--serif);font-size:30px;font-weight:900;color:${s.victory ? "var(--gold2)" : "#ff8a73"}">${s.victory ? "♛ 登顶成功" : "☠ 攀登终结"}</div>
-        <div style="font-family:var(--display);font-size:22px;margin-top:8px">分数 ${s.score ?? "?"}</div></div>`;
+        <div style="font-family:var(--brush);font-size:44px;letter-spacing:6px;color:${s.victory ? "var(--gold2)" : "#ff8a73"}">${s.victory ? "登顶成功" : "攀登终结"}</div>
+        <div style="font-family:var(--num);font-size:30px;font-weight:700;margin-top:6px">分数 ${s.score ?? "?"}</div></div>`;
     default:
       return `<div class="battlefield muted">${esc(SCREEN_NAME[gs.screen_type] || gs.screen_type || "")}</div>`;
   }
