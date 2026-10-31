@@ -34,7 +34,7 @@ const state = {
 
 const pageHead = (crumbs, title, small, desc) => `
   <div class="page-head">
-    <div class="crumbs">${["尖塔战报", ...crumbs].map((c) => `<span>${esc(c)}</span>`).join("")}</div>
+    <div class="crumbs">${["Facility", ...crumbs].map((c) => `<span>${esc(c)}</span>`).join("")}</div>
     <h1 class="section-title">${esc(title)}${small ? `<small>${esc(small)}</small>` : ""}</h1>
     ${desc ? `<p class="page-desc">${esc(desc)}</p>` : ""}
   </div>`;
@@ -110,9 +110,9 @@ function renderHall() {
   const avg = done.length ? (done.reduce((s, r) => s + (r.floor || 0), 0) / done.length).toFixed(1) : "—";
   const bestScore = Math.max(0, ...real.map((r) => r.score || 0));
   root.innerHTML = `
-    ${pageHead(["对局"], "对局记录", "", "AI 铁甲战士的每一次攀登。点击一行查看逐步回放。")}
+    ${pageHead(["Records"], "对局记录", "Ascent Log", "AI 铁甲战士的每一次攀登。点击一行查看逐步回放。")}
     <div class="grid stats">
-      ${[["攀登次数", real.length, ""], ["登顶", wins, "gold"], ["最高楼层", best, ""], ["平均楼层", avg, ""], ["最高分", bestScore || "—", "accent"]]
+      ${[["攀登次数<span class=\"en\">Runs</span>", real.length, ""], ["登顶<span class=\"en\">Cleared</span>", wins, "gold"], ["最高楼层<span class=\"en\">Peak</span>", best, ""], ["平均楼层<span class=\"en\">Avg</span>", avg, ""], ["最高分<span class=\"en\">Score</span>", bestScore || "—", "accent"]]
         .map(([l, n, c]) => `<div class="panel stat"><div class="lbl">${l}</div><div class="num ${c}">${n}</div></div>`).join("")}
     </div>
     <div class="filters">
@@ -180,7 +180,7 @@ function renderReplayShell() {
   const options = state.runs.map((r) => `<option value="${esc(r.id)}" ${r.id === s.id ? "selected" : ""}>${esc(r.seed)} · ${esc(fmtDate(r.started))} · F${r.floor} · ${esc(r.result)}${isTest(r) ? " (测试)" : ""}</option>`).join("");
   const memo = run.memory || {};
   root.innerHTML = `
-    ${pageHead(["回放", s.seed], `${s.seed} 回放`, `A${s.ascension ?? "?"} · ${s.result}`)}
+    ${pageHead(["Replay", s.seed], `${s.seed} 回放`, `Ascension ${s.ascension ?? "?"} · ${s.result === "阵亡" ? "Terminated" : s.result === "胜利" ? "Cleared" : "Active"}`)}
     <div class="replay-head">
       <select id="run-select">${options}</select>
       <span class="badge ${s.result === "胜利" ? "win" : s.result === "阵亡" ? "dead" : "going"}">${esc(s.result)}</span>
@@ -596,7 +596,7 @@ function renderLore(tab, sub) {
     body = `<div class="panel wiki">${md(k.docs["eval-baseline.md"] || "没有评测记录")}</div>`;
   }
   $("#view-lore").innerHTML = `
-    ${pageHead(["知识库"], "知识库", "", "AI 跨局积累的经验、攻略，以及每轮评测的记录。")}
+    ${pageHead(["Archive"], "知识库", "Knowledge Archive", "AI 跨局积累的经验、攻略，以及每轮评测的记录。")}
     <div class="lore-tabs">${tabs.map(([id, name]) => `<button class="btn ${id === tab ? "active" : ""}" data-lore="${id}">${name}</button>`).join("")}
       <button class="btn small" id="lore-reload" style="margin-left:auto">刷新</button></div>
     ${body}`;
@@ -639,7 +639,7 @@ async function pollLive() {
   const summary = state.runs.find((r) => r.id === info.run);
   const fresh = Date.now() / 1000 - info.mtime < 120;
   $("#view-live").innerHTML = `
-    ${pageHead(["实时"], "实时观战", "", "每 3 秒读取一次最新的对局记录。")}
+    ${pageHead(["Monitor"], "实时观战", "Live Monitor", "每 3 秒读取一次最新的对局记录。")}
     <div class="live-banner">
       <span class="status" style="color:${fresh ? "#ff8a76" : "var(--muted)"}">${fresh ? `<span class="live-dot"></span>正在攀登` : "暂无动静"}</span>
       <span class="chip">${esc(info.run)}</span>
