@@ -799,12 +799,40 @@ function diffHtml(text) {
 
 // ---------- card room ----------
 // Every card drawn the way the game draws it: background, portrait, frame, banner, cost orb and type plate from
-// cardui/cardui.atlas at the game's 512px layout (cropped to the card itself), Chinese text from localization/zhs.
+// cardui/cardui.atlas at the game's 512px layout (cropped to the card itself), text from localization/zhs or eng.
 const CARD_W = 302, CARD_H = 419, CROP_X = 106, CROP_Y = 47;
 const RARITY_ORDER = ["BASIC", "COMMON", "UNCOMMON", "RARE", "SPECIAL", "CURSE", "STATUS"];
 const RARITY_NAME = { BASIC: "基础", COMMON: "普通", UNCOMMON: "罕见", RARE: "稀有", SPECIAL: "特殊", CURSE: "诅咒", STATUS: "状态" };
-const COLOR_NAME = { RED: "铁甲战士", COLORLESS: "无色", CURSE: "诅咒" };
+const COLOR_NAME = { RED: "铁甲战士", COLORLESS: "无色", CURSE: "诅咒与状态" };
 const TYPE_ORDER = ["ATTACK", "SKILL", "POWER", "STATUS", "CURSE"];
+const TYPE_LABEL = {
+  zhs: TYPE_NAME,
+  eng: { ATTACK: "Attack", SKILL: "Skill", POWER: "Power", CURSE: "Curse", STATUS: "Status" },
+};
+// The ways the room can be arranged: each gives a card its shelf, and the shelves in order.
+const COST_SHELVES = ["0", "1", "2", "3+", "X", "—"];
+const costShelf = (c) => {
+  const cost = c.base?.cost;
+  if (cost === -1) return "X";
+  if (cost === undefined || cost < 0 || c.type === "CURSE" || c.type === "STATUS") return "—";
+  return cost >= 3 ? "3+" : String(cost);
+};
+const colorShelf = (c) => (c.type === "CURSE" || c.type === "STATUS" ? "CURSE" : c.color);
+const GROUPINGS = {
+  rarity: { label: "稀有度", order: RARITY_ORDER, of: (c) => (c.type === "STATUS" ? "STATUS" : c.rarity), name: (k) => RARITY_NAME[k] },
+  type: { label: "类型", order: TYPE_ORDER, of: (c) => c.type, name: (k) => TYPE_NAME[k] },
+  cost: { label: "费用", order: COST_SHELVES, of: costShelf, name: (k) => (k === "—" ? "不能打出" : k === "X" ? "X 费" : `${k} 费`) },
+  color: { label: "职业", order: ["RED", "COLORLESS", "CURSE"], of: colorShelf, name: (k) => COLOR_NAME[k] },
+};
+
+const room = (() => {
+  const saved = (() => { try { return JSON.parse(localStorage.getItem("cardRoom") || "{}"); } catch { return {}; } })();
+  return { color: "ALL", type: "ALL", group: "rarity", lang: "zhs", upgraded: false, q: "", ...saved };
+})();
+const saveRoom = () => {
+  try { localStorage.setItem("cardRoom", JSON.stringify({ group: room.group, lang: room.lang, upgraded: room.upgraded })); } catch { /* private window */ }
+};
+const cardStrings = (id, lang = room.lang) => state.game.card_text?.[lang]?.[id] || {};
 
 // One atlas region inside the card, placed as the game places it in its 512px frame.
 function uiPiece(name, cls = "") {
@@ -822,9 +850,9 @@ function cardLook(entry) {
 }
 
 // The game's card text: !D! !B! !M! are the card's numbers, NL a line break, [R] an energy icon, and words from
-// the keyword glossary are gold (hover for their meaning). Tokens are separated by spaces that Chinese drops.
-function cardText(entry, upgraded) {
-  const t = state.game.card_text?.[entry.id] || {};
+// the keyword glossary are gold (hover for their meaning). Tokens are separated by spaces, which Chinese drops.
+function cardText(entry, upgraded, lang) {
+  const t = cardStrings(entry.id, lang);
   const face = (upgraded && entry.upgraded) || entry.base || {};
   const base = entry.base || {};
   let raw = t.DESCRIPTION || face.text || "";
@@ -833,30 +861,32 @@ function cardText(entry, upgraded) {
     const v = face[key] ?? base[key] ?? "?";
     return `<b class="${upgraded && v !== base[key] ? "up" : ""}">${v}</b>`;
   };
-  const words = state.game.keywords || [];
-  return raw.split(/\s+/).filter(Boolean).map((tok) => {
+  const words = state.game.keywords?.[lang] || [];
+  const parts = raw.split(/\s+/).filter(Boolean).map((tok) => {
     if (tok === "NL") return "<br>";
     if (tok === "!D!") return num("damage");
     if (tok === "!B!") return num("block");
     if (tok === "!M!") return num("magic_number");
-    if (/^\[[A-Z]\]$/.test(tok)) return `<span class="energy-ico" title="能量"></span>`;
+    if (/^\[[A-Z]\][.,]?$/.test(tok)) return `<span class="energy-ico" title="${lang === "eng" ? "Energy" : "能量"}"></span>${esc(tok.slice(3))}`;
     const word = tok.replace(/^[*]|^#[a-z]/, "");
-    const m = /^(.*?)([。，、！？：；）]*)$/.exec(word);
-    const kw = words.find((k) => k.names.includes(m[1]));
+    const m = /^(.*?)([。，、！？：；）.,!?:;)]*)$/.exec(word);
+    const kw = words.find((k) => k.names.includes(lang === "eng" ? m[1].toLowerCase() : m[1]));
     return kw ? `<span class="kw" data-tip="${tipHtml(m[1], "", kw.text.replace(/#[a-z]|NL/g, ""))}">${esc(m[1])}</span>${esc(m[2])}` : esc(word);
-  }).join("");
+  });
+  // English keeps its spaces (but none around a line break); Chinese runs together.
+  return lang === "eng" ? parts.join(" ").replace(/ ?<br> ?/g, "<br>") : parts.join("");
 }
 
-function cardFace(entry, upgraded = false, k = 0.62) {
+function cardFace(entry, upgraded = false, k = 0.62, lang = room.lang) {
   const look = cardLook(entry);
-  const t = state.game.card_text?.[entry.id] || {};
+  const t = cardStrings(entry.id, lang);
   const face = (upgraded && entry.upgraded) || entry.base || {};
   const name = `${t.NAME || face.name || entry.id}${upgraded ? "+" : ""}`;
   const cost = face.cost ?? entry.base?.cost;
   const playable = !(cost === -2 || entry.type === "CURSE" || entry.type === "STATUS");
   const art = state.game.cards?.[entry.id];
   const artHtml = art ? `<i style="left:${131 - CROP_X + art.ox}px;top:${102 - CROP_Y + (art.oh - art.oy - art.h)}px;width:${art.w}px;height:${art.h}px;background:url(${G(art.page)}) -${art.x}px -${art.y}px no-repeat"></i>` : "";
-  return `<div class="scard ${upgraded ? "upgraded" : ""}" style="--k:${k}" data-card="${esc(entry.id)}" data-up="${upgraded ? 1 : 0}">
+  return `<div class="scard ${upgraded ? "upgraded" : ""} lang-${lang}" style="--k:${k}" data-card="${esc(entry.id)}" data-up="${upgraded ? 1 : 0}">
     <div class="face">
       ${uiPiece(`bg_${look.kind}_${look.tone}`)}${artHtml}${uiPiece(`frame_${look.kind}_${look.rarity}`)}
       ${uiPiece(`banner_${look.rarity}`)}
@@ -864,13 +894,11 @@ function cardFace(entry, upgraded = false, k = 0.62) {
       ${playable ? uiPiece(look.orb) : ""}
       <div class="c-title ${upgraded ? "up" : ""}">${esc(name)}</div>
       ${playable ? `<div class="c-cost">${cost === -1 ? "X" : esc(cost)}</div>` : ""}
-      <div class="c-type">${TYPE_NAME[entry.type] || ""}</div>
-      <div class="c-desc"><div>${cardText(entry, upgraded)}</div></div>
+      <div class="c-type">${TYPE_LABEL[lang][entry.type] || ""}</div>
+      <div class="c-desc"><div>${cardText(entry, upgraded, lang)}</div></div>
     </div>
   </div>`;
 }
-
-const room = { color: "ALL", type: "ALL", upgraded: false, q: "" };
 
 function renderCards() {
   const root = $("#view-cards");
@@ -880,61 +908,66 @@ function renderCards() {
   }
   const all = Object.values(state.catalog.cards);
   const chip = (group, value, label) => `<button class="btn small ${room[group] === value ? "active" : ""}" data-${group}="${value}">${label}</button>`;
-  const list = all.filter((c) => (room.color === "ALL" || c.color === room.color || (room.color === "CURSE" && ["CURSE", "STATUS"].includes(c.type)))
+  const q = room.q.trim().toLowerCase();
+  const list = all.filter((c) => (room.color === "ALL" || colorShelf(c) === room.color)
     && (room.type === "ALL" || c.type === room.type)
-    && (!room.q || `${state.game.card_text?.[c.id]?.NAME || ""} ${c.id}`.toLowerCase().includes(room.q.toLowerCase())));
-  const rarityOf = (c) => (c.type === "STATUS" ? "STATUS" : c.rarity);
-  const sections = RARITY_ORDER.map((r) => {
-    const cards = list.filter((c) => rarityOf(c) === r).sort((a, b) =>
-      TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) || (a.base?.cost ?? 9) - (b.base?.cost ?? 9) || a.id.localeCompare(b.id));
+    && (!q || `${cardStrings(c.id, "zhs").NAME || ""} ${cardStrings(c.id, "eng").NAME || ""} ${c.id}`.toLowerCase().includes(q)));
+  const grouping = GROUPINGS[room.group] || GROUPINGS.rarity;
+  const byName = (a, b) => (cardStrings(a.id).NAME || a.id).localeCompare(cardStrings(b.id).NAME || b.id, room.lang === "eng" ? "en" : "zh");
+  const sections = grouping.order.map((shelf) => {
+    const cards = list.filter((c) => grouping.of(c) === shelf).sort((a, b) =>
+      TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) || (a.base?.cost ?? 9) - (b.base?.cost ?? 9) || byName(a, b));
     if (!cards.length) return "";
     return `<section class="room-section">
-      <h2 class="room-h"><span>${RARITY_NAME[r]}</span><small>${cards.length} 张</small></h2>
+      <h2 class="room-h"><span>${esc(grouping.name(shelf))}</span><small>${cards.length} 张</small></h2>
       <div class="room-grid">${cards.map((c) => cardFace(c, room.upgraded && !!c.upgraded)).join("")}</div>
     </section>`;
   }).join("");
   root.innerHTML = `
-    ${pageHead(["卡牌室"], "卡牌室", `${list.length} 张`, "本地游戏里的卡牌，按稀有度陈列。点击一张牌，并排查看它升级前后。")}
+    ${pageHead(["卡牌室"], "卡牌室", `${list.length} 张`, "本地游戏里的卡牌。按种类切换陈列方式，点击一张牌，并排查看它升级前后。")}
+    <nav class="room-kinds">${[["ALL", "全部卡牌"], ["RED", "铁甲战士"], ["COLORLESS", "无色"], ["CURSE", "诅咒与状态"]]
+      .map(([v, l]) => `<button class="${room.color === v ? "active" : ""}" data-color="${v}">${l}<small>${v === "ALL" ? all.length : all.filter((c) => colorShelf(c) === v).length}</small></button>`).join("")}</nav>
     <div class="room-bar">
-      <div class="seg">${chip("color", "ALL", "全部")}${chip("color", "RED", "铁甲战士")}${chip("color", "COLORLESS", "无色")}${chip("color", "CURSE", "诅咒与状态")}</div>
-      <div class="seg">${chip("type", "ALL", "全部类型")}${chip("type", "ATTACK", "攻击")}${chip("type", "SKILL", "技能")}${chip("type", "POWER", "能力")}</div>
+      <div class="seg"><span class="seg-l">分组</span>${Object.entries(GROUPINGS).map(([k, g]) => chip("group", k, g.label)).join("")}</div>
+      <div class="seg"><span class="seg-l">类型</span>${chip("type", "ALL", "全部")}${chip("type", "ATTACK", "攻击")}${chip("type", "SKILL", "技能")}${chip("type", "POWER", "能力")}</div>
+      <div class="seg"><span class="seg-l">卡面</span>${chip("lang", "zhs", "中文")}${chip("lang", "eng", "English")}</div>
       <label class="seg"><input type="checkbox" id="room-up" ${room.upgraded ? "checked" : ""}> 升级后</label>
-      <input type="search" id="room-q" placeholder="搜索卡名" value="${esc(room.q)}">
+      <input type="search" id="room-q" placeholder="搜索卡名（中文或英文）" value="${esc(room.q)}">
     </div>
     ${sections || `<div class="panel empty">没有符合条件的卡牌</div>`}`;
-  root.querySelector(".room-bar").onclick = (ev) => {
-    const b = ev.target.closest("button");
-    if (!b) return;
-    if (b.dataset.color) room.color = b.dataset.color;
-    if (b.dataset.type) room.type = b.dataset.type;
-    renderCards();
+  root.onclick = (ev) => {
+    const b = ev.target.closest("button[data-color], button[data-type], button[data-group], button[data-lang]");
+    if (b) {
+      Object.assign(room, Object.fromEntries(["color", "type", "group", "lang"].filter((k) => b.dataset[k]).map((k) => [k, b.dataset[k]])));
+      saveRoom();
+      return renderCards();
+    }
+    const c = ev.target.closest(".room-grid [data-card]");
+    if (c) openCard(c.dataset.card);
   };
-  $("#room-up").onchange = (e) => { room.upgraded = e.target.checked; renderCards(); };
+  $("#room-up").onchange = (e) => { room.upgraded = e.target.checked; saveRoom(); renderCards(); };
   $("#room-q").oninput = (e) => {
     room.q = e.target.value;
     clearTimeout(room.timer);
-    room.timer = setTimeout(() => { renderCards(); const q = $("#room-q"); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250);
+    room.timer = setTimeout(() => { renderCards(); const s = $("#room-q"); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }, 250);
   };
-  root.querySelectorAll(".room-grid").forEach((g) => g.addEventListener("click", (ev) => {
-    const c = ev.target.closest("[data-card]");
-    if (c) openCard(c.dataset.card);
-  }));
 }
 
-// A card under glass: the card and its upgrade side by side, with the English text from the catalog below.
+// A card under glass: the card and its upgrade side by side in the chosen language, the other language below.
 function openCard(id) {
   const c = state.catalog.cards[id];
   if (!c) return;
+  const other = room.lang === "eng" ? "zhs" : "eng";
+  const name = cardStrings(id).NAME || id;
   const box = document.createElement("div");
   box.className = "card-lightbox";
-  const en = c.base?.text || "";
-  const enUp = c.upgraded?.text || "";
-  box.innerHTML = `<div class="lb-inner" role="dialog" aria-label="${esc(state.game.card_text?.[id]?.NAME || id)}">
+  box.innerHTML = `<div class="lb-inner" role="dialog" aria-label="${esc(name)}">
       <div class="lb-cards">${cardFace(c, false, 0.95)}${c.upgraded ? `<div class="lb-arrow">➜</div>${cardFace(c, true, 0.95)}` : ""}</div>
       <div class="lb-meta">
-        <div class="lb-name">${esc(state.game.card_text?.[id]?.NAME || id)} <small>${esc(c.base?.name || id)}</small></div>
-        <div class="lb-tags"><span>${COLOR_NAME[c.color] || c.color}</span><span>${TYPE_NAME[c.type] || c.type}</span><span>${RARITY_NAME[c.rarity] || c.rarity}</span></div>
-        <p>${esc(en)}</p>${enUp && enUp !== en ? `<p class="lb-up">升级后：${esc(enUp)}</p>` : ""}
+        <div class="lb-name">${esc(name)} <small>${esc(cardStrings(id, other).NAME || c.base?.name || id)}</small></div>
+        <div class="lb-tags"><span>${COLOR_NAME[colorShelf(c)] || c.color}</span><span>${TYPE_NAME[c.type] || c.type}</span><span>${RARITY_NAME[c.rarity] || c.rarity}</span></div>
+        <p class="lb-other lang-${other}">${cardText(c, false, other)}</p>
+        ${c.upgraded ? `<p class="lb-other lb-up lang-${other}">${other === "eng" ? "Upgraded: " : "升级后："}${cardText(c, true, other)}</p>` : ""}
       </div>
       <button class="lb-close" title="关闭">✕</button>
     </div>`;
