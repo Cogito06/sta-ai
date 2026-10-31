@@ -112,7 +112,7 @@ function buildTower() {
   const clouds = `<g class="tw-cloud"><ellipse cx="110" cy="1120" rx="90" ry="14"/><ellipse cx="300" cy="1150" rx="70" ry="11"/>
     <ellipse cx="270" cy="660" rx="80" ry="12"/><ellipse cx="120" cy="690" rx="55" ry="9"/><ellipse cx="290" cy="320" rx="60" ry="9"/></g>`;
   const marker = `<g id="tower-runs"></g><g id="tower-mark" style="display:none"><line class="tw-mark" x1="40" x2="360" y1="0" y2="0"/>
-    <circle class="tw-mark-dot" cx="200" cy="0" r="6"/><text class="tw-mark-text" x="36" y="-8" text-anchor="end"></text></g>`;
+    <circle class="tw-mark-dot" cx="200" cy="0" r="6"/><text class="tw-mark-text" x="-40" y="-10"></text></g>`;
   const box = document.createElement("div");
   box.className = "tower-bg";
   box.setAttribute("aria-hidden", "true");
@@ -713,46 +713,41 @@ function diffHtml(text) {
   }).join("");
 }
 
-// ---------- archive: enemies classified by what they cost, revealed by how often they were met ----------
-const TIERS = {
-  1: { mark: "Ⅰ", name: "无害", en: "Benign", cls: "t1" },
-  2: { mark: "Ⅱ", name: "低危", en: "Low", cls: "t2" },
-  3: { mark: "Ⅲ", name: "危险", en: "Hazard", cls: "t3" },
-  4: { mark: "Ⅳ", name: "高危", en: "Severe", cls: "t4" },
-  5: { mark: "Ⅴ", name: "致命", en: "Lethal", cls: "t5" },
-};
-// Observation level grows with encounters: 1 meeting shows the name, 2 the numbers, 4 the behaviour, 8 the full log.
-const OBS_STEPS = [1, 2, 4, 8];
-const obsLevel = (n) => OBS_STEPS.filter((s) => n >= s).length;
+// ---------- compendium: every enemy met, grouped like the game's own (act, then normal / elite / boss) ----------
 const ROOM_SHORT = { MonsterRoom: "普通", MonsterRoomElite: "精英", MonsterRoomBoss: "Boss", EventRoom: "事件" };
 const INTENT_ZH = { ATTACK: "攻击", ATTACK_BUFF: "攻击+强化", ATTACK_DEBUFF: "攻击+削弱", ATTACK_DEFEND: "攻击+格挡" };
+const KINDS = { boss: { name: "Boss", icon: "♛" }, elite: { name: "精英", icon: "☠" }, normal: { name: "普通", icon: "⚔" } };
+const kindOf = (e) => (e.room === "MonsterRoomBoss" ? "boss" : e.room === "MonsterRoomElite" ? "elite" : "normal");
+const firstAct = (e) => e.act || 0;
 
 async function loadArchive(openId) {
   if (!state.archive) {
-    $("#view-archive").innerHTML = `${pageHead(["Archive"], "敌人图鉴", "Archive", "正在整理所有对局的战斗记录…")}`;
+    $("#view-archive").innerHTML = `${pageHead(["Compendium"], "敌人图鉴", "Compendium", "正在整理所有对局的战斗记录…")}`;
     [state.archive] = await Promise.all([api("/api/bestiary"), state.knowledge ? null : api("/api/knowledge").then((k) => (state.knowledge = k))]);
+    const order = { boss: 0, elite: 1, normal: 2 };
+    state.archive.sort((a, b) => firstAct(a) - firstAct(b) || order[kindOf(a)] - order[kindOf(b)] || b.encounters - a.encounters);
   }
-  renderArchive(state.archiveFilter || 0, openId ? decodeURIComponent(openId) : null);
+  renderArchive(state.archiveFilter || {}, openId ? decodeURIComponent(openId) : null);
 }
 
-function renderArchive(filter = state.archiveFilter || 0, openId = null) {
+function renderArchive(filter = state.archiveFilter || {}, openId = null) {
   state.archiveFilter = filter;
-  const list = state.archive.filter((e) => !filter || e.tier === filter);
-  const counts = [1, 2, 3, 4, 5].map((t) => state.archive.filter((e) => e.tier === t).length);
+  const list = state.archive.filter((e) => (!filter.act || firstAct(e) === filter.act) && (!filter.kind || kindOf(e) === filter.kind));
+  const btn = (key, val, label) => `<button class="btn small ${(filter[key] || 0) === val ? "active" : ""}" data-f="${key}" data-v="${val}">${label}</button>`;
+  const acts = [...new Set(list.map(firstAct))].sort();
   $("#view-archive").innerHTML = `
-    ${pageHead(["Archive"], "敌人图鉴", "Archive",
-      "每个敌人的危险等级按它在实际对局里让 AI 平均损失的生命比例和造成的阵亡计算。遭遇次数越多，条目解锁的信息越多。")}
-    <div class="tier-legend">
-      <button class="btn small ${!filter ? "active" : ""}" data-tier="0">全部 ${state.archive.length}</button>
-      ${[1, 2, 3, 4, 5].map((t) => `<button class="btn small tier-btn ${TIERS[t].cls} ${filter === t ? "active" : ""}" data-tier="${t}">
-        <span class="tier-mark">${TIERS[t].mark}</span>${TIERS[t].name} ${counts[t - 1]}</button>`).join("")}
-      <span class="muted obs-help">观察等级：遭遇 1 / 2 / 4 / 8 次依次解锁 名称 · 数据 · 行为 · 完整记录</span>
+    ${pageHead(["Compendium"], "敌人图鉴", "Compendium", "AI 在所有对局里遇到过的敌人，按幕和房间分类。数据来自实际战斗记录：遭遇次数、平均损失的生命、造成的阵亡。")}
+    <div class="filters-row">
+      <span class="muted">幕</span>${btn("act", 0, "全部")}${[1, 2, 3].map((a) => btn("act", a, `第 ${a} 幕`)).join("")}
+      <span class="muted" style="margin-left:14px">房间</span>${btn("kind", 0, "全部")}${Object.entries(KINDS).map(([k, v]) => btn("kind", k, `${v.icon} ${v.name}`)).join("")}
     </div>
     <div id="entry-detail"></div>
-    <div class="grid archive-grid">${list.map(entryCard).join("") || `<div class="empty">没有符合条件的条目</div>`}</div>`;
+    ${acts.map((a) => `
+      <h2 class="group-title">第 ${a || "?"} 幕</h2>
+      <div class="grid archive-grid">${list.filter((e) => firstAct(e) === a).map(entryCard).join("")}</div>`).join("") || `<div class="empty">没有符合条件的敌人</div>`}`;
   $("#view-archive").onclick = (ev) => {
-    const t = ev.target.closest("[data-tier]");
-    if (t) return renderArchive(+t.dataset.tier);
+    const f = ev.target.closest("[data-f]");
+    if (f) return renderArchive({ ...filter, [f.dataset.f]: isNaN(+f.dataset.v) ? f.dataset.v : +f.dataset.v });
     const c = ev.target.closest("[data-entry]");
     if (c) return openEntry(c.dataset.entry);
     if (ev.target.closest("[data-close]")) $("#entry-detail").innerHTML = "";
@@ -763,29 +758,21 @@ function renderArchive(filter = state.archiveFilter || 0, openId = null) {
 }
 
 const entryName = (e) => e.names[e.names.length - 1] || e.id;
-const obsDots = (lv) => `<span class="obs" title="观察等级 ${lv}/4">${[1, 2, 3, 4].map((i) => `<i class="${i <= lv ? "on" : ""}"></i>`).join("")}</span>`;
 
 function entryCard(e) {
-  const tier = TIERS[e.tier];
-  const lv = obsLevel(e.encounters);
-  return `<article class="entry ${tier.cls}" data-entry="${esc(e.id)}">
-    <div class="entry-tier"><span class="tier-mark">${tier.mark}</span><span>${tier.name}</span><small>${tier.en}</small></div>
+  const kind = kindOf(e);
+  return `<article class="entry k-${kind}" data-entry="${esc(e.id)}">
+    <div class="entry-kind"><span>${KINDS[kind].icon}</span><small>${KINDS[kind].name}</small></div>
     <div class="entry-body">
       <div class="entry-name">${esc(entryName(e))}</div>
-      <div class="entry-id">${esc(e.id)}</div>
+      <div class="entry-id">${esc(e.id)} · 生命 ${e.max_hp}</div>
       <div class="entry-meta">
-        <span>${e.rooms.map((r) => ROOM_SHORT[r] || r).join(" / ")}</span>
         <span>遭遇 <b>${e.encounters}</b></span>
-        ${lv >= 2 ? `<span>平均损失 <b>${e.avg_pct}%</b></span>` : `<span class="locked">数据未解锁</span>`}
+        <span>平均损失 <b>${e.avg_pct}%</b></span>
         ${e.deaths ? `<span class="dead-count">阵亡 <b>${e.deaths}</b></span>` : ""}
       </div>
     </div>
-    ${obsDots(lv)}
   </article>`;
-}
-
-function lockedBlock(need, have, what) {
-  return `<div class="locked-block"><b>观察不足</b>再遭遇 ${need - have} 次解锁${what}。</div>`;
 }
 
 function relatedLessons(e) {
@@ -799,59 +786,53 @@ function relatedLessons(e) {
 function openEntry(id) {
   const e = state.archive.find((x) => x.id === id);
   if (!e) return;
-  const tier = TIERS[e.tier];
-  const lv = obsLevel(e.encounters);
+  const kind = kindOf(e);
   const lessons = relatedLessons(e);
   const stats = [["遭遇次数", e.encounters], ["涉及对局", e.runs], ["最大生命", e.max_hp], ["平均回合", e.avg_turns],
     ["平均损失", `${e.avg_loss} (${e.avg_pct}%)`], ["单场最多", e.worst], ["造成阵亡", e.deaths]];
   $("#entry-detail").innerHTML = `
-    <div class="entry-sheet panel ${tier.cls}" style="margin:0 0 26px">
+    <div class="entry-sheet panel k-${kind}" style="margin:0 0 26px">
       <div class="sheet-head">
-        <div class="sheet-tier"><span class="tier-mark big">${tier.mark}</span><div><b>${tier.name}</b><small>${tier.en} · 风险等级</small></div></div>
+        <div class="sheet-kind">${KINDS[kind].icon}</div>
         <div class="sheet-title">
-          <div class="crumbs">Archive / ${esc(e.id)}</div>
+          <div class="crumbs">Compendium / ${esc(e.id)}</div>
           <h2>${esc(entryName(e))}</h2>
           <div class="muted">${e.names.length > 1 ? `别名：${esc(e.names.join("、"))} · ` : ""}出现于第 ${e.acts.join("、")} 幕 · ${e.rooms.map((r) => ROOM_SHORT[r] || r).join(" / ")}</div>
         </div>
-        <div class="sheet-obs">${obsDots(lv)}<small>观察等级 ${lv} / 4</small></div>
         <button class="btn small" data-close>关闭</button>
       </div>
       <div class="sheet-grid">
         <section>
-          <h3>战斗数据 <small>Lv 2</small></h3>
-          ${lv >= 2 ? `<dl class="kv">${stats.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : lockedBlock(2, e.encounters, "战斗数据")}
+          <h3>战斗数据</h3>
+          <dl class="kv">${stats.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
         </section>
         <section>
-          <h3>行为观察 <small>Lv 3</small></h3>
-          ${lv >= 3 ? `
-            <div class="sub-h">见过的最大攻击</div>
-            <ul class="plain">${e.hits.filter((h) => h.intent.startsWith("ATTACK")).slice(0, 5).map((h) =>
-              `<li>${esc(INTENT_ZH[h.intent] || h.intent)} <code>${h.damage}${h.times > 1 ? ` × ${h.times}` : ""}</code></li>`).join("") || "<li class='muted'>没有记录到攻击</li>"}</ul>
-            <div class="sub-h">其他意图</div>
-            <div>${e.hits.filter((h) => !h.intent.startsWith("ATTACK")).map((h) => `<span class="chip">${esc(h.intent)}</span>`).join("") || "<span class='muted'>—</span>"}</div>
-            <div class="sub-h">身上出现过的能力</div>
-            <div>${e.powers.map((p) => `<span class="chip">${esc(p)}</span>`).join("") || "<span class='muted'>—</span>"}</div>`
-            : lockedBlock(4, e.encounters, "行为观察")}
+          <h3>意图与能力</h3>
+          <div class="sub-h">见过的最大攻击</div>
+          <ul class="plain">${e.hits.filter((h) => h.intent.startsWith("ATTACK")).slice(0, 5).map((h) =>
+            `<li>${esc(INTENT_ZH[h.intent] || h.intent)} <code>${h.damage}${h.times > 1 ? ` × ${h.times}` : ""}</code></li>`).join("") || "<li class='muted'>没有记录到攻击</li>"}</ul>
+          <div class="sub-h">其他意图</div>
+          <div>${e.hits.filter((h) => !h.intent.startsWith("ATTACK")).map((h) => `<span class="chip">${esc(h.intent)}</span>`).join("") || "<span class='muted'>—</span>"}</div>
+          <div class="sub-h">身上出现过的能力</div>
+          <div>${e.powers.map((p) => `<span class="chip">${esc(p)}</span>`).join("") || "<span class='muted'>—</span>"}</div>
         </section>
         <section>
-          <h3>相关经验 <small>Lessons</small></h3>
+          <h3>相关经验</h3>
           ${lessons.length ? lessons.map((l) => `<p class="lesson-quote">${esc(l.text)}</p>`).join("") : `<p class="muted">经验库里还没有提到它。</p>`}
         </section>
       </div>
       <section class="sheet-log">
-        <h3>遭遇记录 <small>Lv 4</small></h3>
-        ${lv >= 4 || e.deaths ? `<div class="table-wrap"><table class="data">
+        <h3>遭遇记录 <span class="muted" style="text-transform:none;letter-spacing:0">点一行打开那局的回放</span></h3>
+        <div class="table-wrap"><table class="data">
           <thead><tr><th>对局</th><th>楼层</th><th>房间</th><th>同场</th><th>回合</th><th>损失</th><th>结果</th></tr></thead>
           <tbody>${e.fights.map((f) => `<tr data-goto="${esc(f.run)}" class="${f.died ? "dead" : ""}">
             <td>${esc(runLabel(f.run))}</td><td>F${f.floor}</td><td class="txt">${ROOM_SHORT[f.room] || f.room}</td>
             <td class="txt">${esc(f.with.join("、") || "—")}</td><td>${f.turns}</td><td>${f.loss} <span class="muted">(${f.pct}%)</span></td>
-            <td class="txt">${f.died ? `<span class="badge dead">阵亡</span>` : `<span class="badge win">存活</span>`}</td></tr>`).join("")}</tbody></table></div>`
-          : lockedBlock(8, e.encounters, "完整遭遇记录")}
+            <td class="txt">${f.died ? `<span class="badge dead">阵亡</span>` : `<span class="badge win">存活</span>`}</td></tr>`).join("")}</tbody></table></div>
       </section>
     </div>`;
   $("#entry-detail").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
 // ---------- live ----------
 function startLive() {
   if (!$("#view-live").innerHTML) $("#view-live").innerHTML = `<div class="empty">连接尖塔中…</div>`;

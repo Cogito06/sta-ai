@@ -6,6 +6,7 @@ Reads runs/<run>/run.jsonl and raw/*.json, runs/lessons.json, guides/*.md, runs/
 docs/eval-baseline.md. Never writes anything and never talks to the game.
 """
 import argparse
+from collections import Counter
 import http.server
 import json
 import mimetypes
@@ -305,18 +306,16 @@ def run_fights(run_dir):
     return fights
 
 
-# Risk tiers from observed cost: average share of max HP lost per fight, plus a penalty per death caused.
-RISK_TIERS = [(10, 1), (20, 2), (32, 3), (48, 4)]
-
-
-def risk_tier(avg_loss_pct, death_rate):
-    score = avg_loss_pct + 40 * death_rate
-    return next((tier for limit, tier in RISK_TIERS if score < limit), 5)
+# Seeds used by smoke tests and bridge scenarios; their fights are set up by hand, not met on the climb.
+TEST_SEEDS = {"SCENARIO1", "61599666974301", "SMOKE2"}
 
 
 def bestiary():
     entries = {}
     for run_dir in run_dirs():
+        summary = summarize(run_dir)
+        if str(summary["seed"]) in TEST_SEEDS or summary["steps"] < 10:
+            continue
         for fight in run_fights(run_dir):
             pct = 100 * fight["loss"] / fight["max_hp"] if fight.get("max_hp") else 0
             for mid, seen in fight["monsters"].items():
@@ -331,7 +330,7 @@ def bestiary():
                     old = e["hits"].get(intent, (0, 1))
                     if dmg * hits > old[0] * old[1]:
                         e["hits"][intent] = (dmg, hits)
-                e["fights"].append({"run": fight["run"], "floor": fight["floor"], "room": fight["room"], "turns": fight["turns"],
+                e["fights"].append({"run": fight["run"], "floor": fight["floor"], "room": fight["room"], "act": fight["act"], "turns": fight["turns"],
                                     "loss": fight["loss"], "pct": round(pct, 1), "died": fight["died"],
                                     "with": sorted(s["name"] for k, s in fight["monsters"].items() if k != mid)})
     out = []
@@ -342,15 +341,18 @@ def bestiary():
         out.append({
             "id": e["id"], "names": sorted(n for n in e["names"] if n), "max_hp": e["max_hp"],
             "rooms": sorted(e["rooms"]), "acts": sorted(a for a in e["acts"] if a),
+            # Where it is usually met (a Cultist summoned in a boss fight is still a hallway enemy).
+            "room": Counter(f["room"] for f in fights if f["room"] != "EventRoom").most_common(1)[0][0]
+            if any(f["room"] != "EventRoom" for f in fights) else "EventRoom",
+            "act": Counter(f["act"] for f in fights).most_common(1)[0][0],
             "encounters": len(fights), "runs": len({f["run"] for f in fights}), "deaths": deaths,
             "avg_loss": round(sum(f["loss"] for f in fights) / len(fights), 1), "avg_pct": round(avg_pct, 1),
             "worst": max(f["loss"] for f in fights), "avg_turns": round(sum(f["turns"] for f in fights) / len(fights), 1),
-            "tier": risk_tier(avg_pct, deaths / len(fights)),
             "hits": [{"intent": k, "damage": d, "times": h} for k, (d, h) in sorted(e["hits"].items(), key=lambda kv: -kv[1][0] * kv[1][1])],
             "powers": sorted(p for p in e["powers"] if p),
             "fights": sorted(fights, key=lambda f: (f["run"], f["floor"] or 0)),
         })
-    out.sort(key=lambda e: (-e["tier"], -e["encounters"]))
+    out.sort(key=lambda e: -e["encounters"])
     return out
 
 

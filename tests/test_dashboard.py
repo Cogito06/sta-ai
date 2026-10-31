@@ -1,6 +1,6 @@
 import unittest
 
-from dashboard.server import chosen_node, risk_tier, visited_path
+from dashboard.server import chosen_node, visited_path
 
 
 def node(x, y, children):
@@ -34,13 +34,6 @@ class DashboardPathTest(unittest.TestCase):
         log = [{"step": 1}, {"step": 2, "input": "choose x2"}, {"step": 3}, {"step": 4}, {"step": 5}]
         path = visited_path(log, states, {1: MAP})[1]
         self.assertEqual([(n["x"], n["y"]) for n in path], [(2, 0), (1, 1), (1, 2), (1, 3)])
-
-
-class DashboardRiskTest(unittest.TestCase):
-    def test_tier_grows_with_hp_cost_and_deaths(self):
-        self.assertEqual(risk_tier(5, 0), 1)
-        self.assertEqual(risk_tier(25, 0), 3)
-        self.assertEqual(risk_tier(25, 1), 5)
 
 
 if __name__ == "__main__":
