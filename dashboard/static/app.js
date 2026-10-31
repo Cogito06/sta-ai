@@ -81,6 +81,64 @@ const runLabel = (id) => {
   return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]} 那局` : id || "";
 };
 
+// ---------- the spire behind every page ----------
+// Floors map onto its three tiers (one per act) and the tip (the heart); a marker shows the floor in view.
+const TOWER_BANDS = [[0, 940], [17, 680], [34, 430], [51, 200], [56, 70]];
+function floorY(f) {
+  f = Math.max(0, Math.min(56, f || 0));
+  for (let i = 1; i < TOWER_BANDS.length; i++) {
+    const [f0, y0] = TOWER_BANDS[i - 1], [f1, y1] = TOWER_BANDS[i];
+    if (f <= f1) return y0 + ((f - f0) / (f1 - f0)) * (y1 - y0);
+  }
+  return 70;
+}
+function buildTower() {
+  const tiers = [[940, 680, 124, 98], [680, 430, 88, 66], [430, 200, 56, 38]]; // [bottom y, top y, bottom half-width, top half-width]
+  let body = "", windows = "";
+  tiers.forEach(([yb, yt, wb, wt], i) => {
+    body += `<path class="tw-body" d="M${200 - wb} ${yb} L${200 - wt} ${yt} L${200 + wt} ${yt} L${200 + wb} ${yb} Z"/>`;
+    body += `<rect class="tw-ledge" x="${200 - wt - 10}" y="${yt - 8}" width="${(wt + 10) * 2}" height="10" rx="2"/>`;
+    for (let y = yb - 34; y > yt + 20; y -= 40) {
+      const half = wb + ((wt - wb) * (yb - y)) / (yb - yt) - 22;
+      for (let x = -half; x <= half; x += Math.max(26, half / 1.5)) windows += `<rect class="tw-win" x="${200 + x - 3}" y="${y - 9}" width="6" height="12" rx="3"/>`;
+    }
+    body += `<text class="tw-act" x="${200 + wb + 14}" y="${(yb + yt) / 2}">第 ${["一", "二", "三"][i]} 幕</text>`;
+  });
+  const spire = `<path class="tw-body" d="M162 200 L200 60 L238 200 Z"/><circle class="tw-heart" cx="200" cy="128" r="9"/>
+    <text class="tw-act" x="252" y="140">心脏</text>`;
+  const land = `<path class="tw-land" d="M-40 1000 L-40 950 Q60 900 130 935 Q200 960 270 930 Q350 895 440 945 L440 1000 Z"/>`;
+  const clouds = `<g class="tw-cloud"><ellipse cx="110" cy="560" rx="90" ry="14"/><ellipse cx="300" cy="575" rx="70" ry="11"/>
+    <ellipse cx="270" cy="330" rx="80" ry="12"/><ellipse cx="120" cy="345" rx="55" ry="9"/></g>`;
+  const marker = `<g id="tower-runs"></g><g id="tower-mark" style="display:none"><line class="tw-mark" x1="40" x2="360" y1="0" y2="0"/>
+    <circle class="tw-mark-dot" cx="200" cy="0" r="6"/><text class="tw-mark-text" x="36" y="-8" text-anchor="end"></text></g>`;
+  const box = document.createElement("div");
+  box.className = "tower-bg";
+  box.setAttribute("aria-hidden", "true");
+  box.innerHTML = `<svg viewBox="-60 0 520 1000" preserveAspectRatio="xMidYMax meet">${land}${body}${spire}${windows}${clouds}${marker}</svg>`;
+  document.body.prepend(box);
+}
+function setTowerFloor(floor, label) {
+  const g = $("#tower-mark");
+  if (!g) return;
+  if (floor == null) { g.style.display = "none"; return; }
+  g.style.display = "";
+  g.setAttribute("transform", `translate(0 ${floorY(floor).toFixed(1)})`);
+  g.querySelector("text").textContent = label || `F${floor}`;
+}
+buildTower();
+// One dot per run at the floor where it ended, fanned out sideways so runs on the same floor stay visible.
+function setTowerRuns(runs) {
+  const g = $("#tower-runs");
+  if (!g) return;
+  const byFloor = {};
+  g.innerHTML = runs.map((r) => {
+    const k = r.floor || 0, i = (byFloor[k] = (byFloor[k] || 0) + 1) - 1;
+    const x = 200 + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 14;
+    const cls = r.result === "胜利" ? "win" : r.result === "阵亡" ? "dead" : "going";
+    return `<circle class="tw-run ${cls}" cx="${x}" cy="${floorY(k).toFixed(1)}" r="5"><title>${esc(r.seed)} · F${k}</title></circle>`;
+  }).join("");
+}
+
 // ---------- navigation ----------
 function show(view) {
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === view));
@@ -90,6 +148,8 @@ function show(view) {
   if (view === "lore" && !state.knowledge) loadLore();
   if (view === "archive") loadArchive(location.hash.split("/")[1]);
   if (view === "replay" && !state.run && state.runs.length) openRun(defaultRun().id, false);
+  if (view === "replay" && state.run) setStep(state.step);
+  else if (view !== "live") setTowerFloor(state.bestFloor, state.bestFloor != null ? `最高 F${state.bestFloor}` : "");
   if (location.hash.slice(1).split("/")[0] !== view) location.hash = view;
 }
 $("#tabs").addEventListener("click", (ev) => {
@@ -110,6 +170,9 @@ function renderHall() {
   const best = Math.max(0, ...real.map((r) => r.floor || 0));
   const avg = done.length ? (done.reduce((s, r) => s + (r.floor || 0), 0) / done.length).toFixed(1) : "—";
   const bestScore = Math.max(0, ...real.map((r) => r.score || 0));
+  state.bestFloor = best;
+  setTowerRuns(real);
+  if ($("#view-hall").classList.contains("active")) setTowerFloor(best, `最高 F${best}`);
   root.innerHTML = `
     ${pageHead(["Records"], "对局记录", "Ascent Log", "AI 铁甲战士的每一次攀登。点击一行查看逐步回放。")}
     <div class="grid stats">
@@ -267,6 +330,7 @@ async function setStep(n) {
   state.step = n;
   $("#step-range").value = n;
   const t = run.timeline[n - 1];
+  setTowerFloor(t.floor, `F${t.floor ?? 0}`);
   $("#step-label").textContent = `第 ${n} 步 · F${t.floor ?? "?"} · ${SCREEN_NAME[t.screen] || t.screen || ""}`;
   document.querySelectorAll("#log-list .log-item").forEach((el) => el.classList.toggle("cur", +el.dataset.step === n));
   const cur = $(`#log-list .log-item[data-step="${n}"]`);
@@ -782,6 +846,7 @@ async function pollLive() {
   state.live.run = info.run;
   state.live.steps = info.steps;
   const raw = info.steps ? await api(`/api/run/${encodeURIComponent(info.run)}/step/${info.steps}`).catch(() => null) : null;
+  if (raw) setTowerFloor(raw.floor, `F${raw.floor ?? 0}`);
   const summary = state.runs.find((r) => r.id === info.run);
   const fresh = Date.now() / 1000 - info.mtime < 120;
   $("#view-live").innerHTML = `
