@@ -381,8 +381,8 @@ code, .seed, .step-label, .log-item .sn, .log-item .act, .diff, .chip, .stat .nu
 .topbar, main { position: relative; z-index: 1; }
 .topbar { position: sticky; z-index: 10; background: rgba(10, 13, 17, .9); border-bottom-color: var(--line2); }
 .topbar-inner { height: 64px; }
-.logo { width: auto; height: 44px; background: none; border-radius: 0; color: var(--gold); }
-.logo img { height: 44px; width: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+.logo { width: auto; height: 58px; background: none; border-radius: 0; color: var(--gold); }
+.logo img { height: 58px; width: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
 .logo svg { width: 24px; height: 24px; }
 .brand-title, .section-title, .panel-title, .wiki h1, .wiki h2, .wiki h3, .infobox .ib-title, .go-title { font-family: var(--serif); letter-spacing: 0; }
 .brand-title { font-weight: 700; font-size: 17px; color: var(--gold); }
