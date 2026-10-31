@@ -1,52 +1,51 @@
-/* Calm, low-saturation theme: a sky palette from first light to night, serif for titles,
-   sans for the interface, mono for anything checkable. Dark mode follows the system. */
+/* Slay the Spire at heart: the map's parchment and ink, Ironclad red, relic gold, skill teal.
+   Calm layout and type (serif titles, sans interface, mono data). Dark mode is the Spire at night. */
 :root {
-  --bg: #F7F4FA;            /* mist white: product shell */
-  --ground: #F1EFE9;        /* ivory: page header band */
-  --surface: #FEFCFF;       /* card */
-  --surface2: #F2EFF5;      /* sidebar, table head */
-  --surface3: #EBE6ED;      /* mist: chips, tracks */
-  --line: #E2DDE6;
-  --line2: #D6CFDC;
-  --text: #201C27;          /* night ink */
-  --muted: #646072;
-  --faint: #9A95A6;
-  --primary: #4C3F60;       /* deep dusk: main buttons, strong accents */
-  --dusk: #76668D;          /* brand accent line */
-  --star: #727E9A;          /* star blue: interaction, "running" */
-  --link: #576589;
-  --primary-soft: rgba(118, 102, 141, .12);
-  --star-soft: rgba(114, 126, 154, .14);
-  --ok: #059669;  --ok-soft: rgba(5, 150, 105, .10);      /* emerald-600 */
-  --warn: #D97706; --warn-soft: rgba(217, 119, 6, .12);   /* amber-600 */
-  --bad: #E11D48; --bad-soft: rgba(225, 29, 72, .09);     /* rose-600 */
-  --hp: #D2496A;
-  --attack: #D2496A;
-  --skill: #727E9A;
+  --bg: #EFE6D3;            /* map parchment */
+  --ground: #E7DBC2;        /* darker parchment band */
+  --surface: #F8F2E4;       /* card */
+  --surface2: #EEE4CF;
+  --surface3: #E3D6BB;
+  --line: #D9C9A9;
+  --line2: #C9B590;
+  --text: #2E241B;          /* map ink */
+  --muted: #6B5A48;
+  --faint: #9C8A72;
+  --primary: #8E2A22;       /* Ironclad red: main buttons, strong accents */
+  --dusk: #A8402F;          /* accent line */
+  --star: #3F6E73;          /* skill teal: interaction */
+  --link: #3F6E73;
+  --primary-soft: rgba(168, 64, 47, .11);
+  --star-soft: rgba(63, 110, 115, .13);
+  --ok: #4F7A3A;  --ok-soft: rgba(79, 122, 58, .13);
+  --warn: #B07A1E; --warn-soft: rgba(176, 122, 30, .14);
+  --bad: #A8322A; --bad-soft: rgba(168, 50, 42, .11);
+  --hp: #B53A2E;
+  --attack: #B53A2E;
+  --skill: #3F6E73;
   --power: #B8892E;
-  --curse: #76668D;
-  --status: #9A95A6;
+  --curse: #6B4E7A;
+  --status: #9C8A72;
   --radius: 10px;
-  --shadow: 0 1px 2px rgba(32, 28, 39, .04), 0 6px 24px rgba(76, 63, 96, .06);
+  --shadow: 0 1px 2px rgba(46, 36, 27, .05), 0 6px 22px rgba(90, 62, 30, .07);
   --serif: "Noto Serif SC", "Songti SC", STSong, ui-serif, serif;
   --sans: "Avenir Next", "SF Pro Text", -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1C1A23; --ground: #191720; --surface: #23202B; --surface2: #282431; --surface3: #312C3B;
-    --line: rgba(255,255,255,.10); --line2: rgba(255,255,255,.16);
-    --text: #F2EFF4; --muted: #A6A2B0; --faint: #77727F;
-    --primary: #EBE6ED; --dusk: #A898C2; --star: #909EC0; --link: #909EC0;
-    --primary-soft: rgba(168, 152, 194, .16); --star-soft: rgba(144, 158, 192, .16);
-    --ok: #34D399; --ok-soft: rgba(52, 211, 153, .12);
-    --warn: #FBBF24; --warn-soft: rgba(251, 191, 36, .12);
-    --bad: #FB7185; --bad-soft: rgba(251, 113, 133, .12);
-    --hp: #F07A95; --attack: #F07A95; --skill: #909EC0; --power: #D9AE57; --curse: #A898C2;
-    --shadow: 0 1px 2px rgba(0,0,0,.2), 0 8px 28px rgba(0,0,0,.25);
+    --bg: #171A1F; --ground: #1D2127; --surface: #21252C; --surface2: #282C34; --surface3: #31363F;
+    --line: rgba(239, 230, 211, .10); --line2: rgba(239, 230, 211, .17);
+    --text: #EDE3CE; --muted: #B3A58C; --faint: #7F7564;
+    --primary: #D9614B; --dusk: #E07A5F; --star: #7FB3B5; --link: #7FB3B5;
+    --primary-soft: rgba(224, 122, 95, .15); --star-soft: rgba(127, 179, 181, .15);
+    --ok: #9CC77A; --ok-soft: rgba(156, 199, 122, .13);
+    --warn: #E0B05A; --warn-soft: rgba(224, 176, 90, .14);
+    --bad: #E8735E; --bad-soft: rgba(232, 115, 94, .14);
+    --hp: #E8735E; --attack: #E8735E; --skill: #7FB3B5; --power: #E0B05A; --curse: #A88BC0;
+    --shadow: 0 1px 2px rgba(0,0,0,.25), 0 8px 28px rgba(0,0,0,.3);
   }
 }
-
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 html { overflow-x: hidden; }
@@ -64,7 +63,7 @@ h1, h2, h3 { text-wrap: balance; }
 .topbar-inner { max-width: 1280px; margin: 0 auto; padding: 0 32px; height: 60px; display: flex; align-items: center; gap: 36px; }
 .brand { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
 .logo { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff;
-  background: radial-gradient(circle at 35% 30%, #9aa6d6, #5b5fa8 55%, #4C3F60); }
+  background: var(--primary); }
 .logo svg { width: 15px; height: 15px; }
 .brand-title { font-family: var(--serif); font-weight: 700; font-size: 17px; letter-spacing: .02em; line-height: 1.2; }
 .brand-sub { font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--faint); }
@@ -114,8 +113,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 0 32px 72px; }
 .btn { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; background: var(--surface); color: var(--text);
   border: 1px solid var(--line2); border-radius: 8px; padding: 6px 14px; font-size: 13.5px; font-weight: 600; }
 .btn:hover { background: var(--surface2); }
-.btn.active { background: var(--primary); color: var(--bg); border-color: var(--primary); }
-.btn.primary { background: var(--primary); color: var(--bg); border-color: var(--primary); }
+.btn.active { background: var(--primary); color: #F8F2E4; border-color: var(--primary); }
+.btn.primary { background: var(--primary); color: #F8F2E4; border-color: var(--primary); }
 .btn.small { padding: 3px 11px; font-size: 12.5px; }
 
 /* ---------- runs ---------- */
@@ -314,8 +313,8 @@ tr.win .track i { background: var(--ok); }
 .chart .boss-label { fill: var(--power); font-weight: 600; }
 
 /* ---------- archive (enemy entries) ---------- */
-:root { --t1: #059669; --t2: #727E9A; --t3: #D97706; --t4: #E11D48; --t5: #4C3F60; }
-@media (prefers-color-scheme: dark) { :root { --t1: #34D399; --t2: #909EC0; --t3: #FBBF24; --t4: #FB7185; --t5: #C9B8E8; } }
+:root { --t1: #4F7A3A; --t2: #3F6E73; --t3: #B07A1E; --t4: #A8322A; --t5: #5A1E1A; }
+@media (prefers-color-scheme: dark) { :root { --t1: #9CC77A; --t2: #7FB3B5; --t3: #E0B05A; --t4: #E8735E; --t5: #F2A08A; } }
 .t1 { --tier: var(--t1); } .t2 { --tier: var(--t2); } .t3 { --tier: var(--t3); } .t4 { --tier: var(--t4); } .t5 { --tier: var(--t5); }
 .tier-legend { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 22px; }
 .tier-btn { color: var(--tier); }
