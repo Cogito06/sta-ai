@@ -439,7 +439,7 @@ code, .seed, .step-label, .log-item .sn, .log-item .act, .diff, .chip, .stat .nu
 .map .node.walk circle.ring { fill: rgba(122, 40, 26, .12); stroke: rgba(90, 31, 22, .7); stroke-width: 2; }
 .map .node.here circle.ring { fill: rgba(176, 38, 26, .2); stroke: #b0261a; stroke-width: 4; }
 .map .node text { font-size: 13px; text-anchor: middle; dominant-baseline: central; fill: var(--parch-ink); }
-.map .boss-name { font-family: var(--serif); font-size: 16px; font-weight: 700; fill: var(--parch-ink); text-anchor: middle; }
+.map .boss-name { font-family: var(--serif); font-size: 16px; font-weight: 700; fill: var(--parch-ink); text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: #c9b48a; stroke-width: 4px; stroke-linejoin: round; }
 .go-title { font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .live-dot, .spire-bg .glow, .spire-bg .cloud { animation: none; } }
 .tabs { scrollbar-width: none; }

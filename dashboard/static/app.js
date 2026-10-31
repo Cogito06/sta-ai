@@ -631,7 +631,7 @@ function renderMap() {
   const walkEdges = new Set();
   for (let i = 1; i < walked.length; i++) walkEdges.add(`${walked[i - 1]}>${walked[i]}`);
   const maxY = Math.max(...nodes.map((n) => n.y));
-  const W = 420, H = 820, top = 175, S = 40;
+  const W = 420, H = 860, top = 205, S = 40;
   const px = (x) => 50 + x * ((W - 100) / 6), py = (y) => H - 50 - y * ((H - 50 - top) / Math.max(1, maxY));
   let edges = "", icons = "";
   for (const n of nodes) {
@@ -651,12 +651,12 @@ function renderMap() {
   const bossName = run.bosses?.[state.act];
   const bk = bossIcon(bossName);
   const boss = bk && state.game.available
-    ? `<g class="boss"><image href="${G(`images/ui/map/boss/${bk}.png`)}" x="${W / 2 - 70}" y="8" width="140" height="140"/></g>`
+    ? `<g class="boss"><image href="${G(`images/ui/map/boss/${bk}.png`)}" x="${W / 2 - 60}" y="8" width="120" height="120"/></g>`
     : `<text x="${W / 2}" y="80" style="font-size:44px">♛</text>`;
   const paper = state.game.available
     ? `<div class="paper">${["mapTop", "mapMid", "mapBot"].map((p) => `<img src="${G(`images/ui/map/${p}.png`)}" alt="">`).join("")}</div>` : "";
   $("#map-view").innerHTML = `<div class="mapsheet ${paper ? "" : "plain"}">${paper}<svg viewBox="0 0 ${W} ${H}">${boss}
-    ${bossName ? `<text class="boss-name" x="${W / 2}" y="${top - 8}">${esc(bossName)}</text>` : ""}${edges}${icons}</svg></div>`;
+    ${bossName ? `<text class="boss-name" x="${W / 2}" y="152">${esc(bossName)}</text>` : ""}${edges}${icons}</svg></div>`;
   highlightHere();
 }
 function highlightHere() {
