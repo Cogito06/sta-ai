@@ -477,7 +477,10 @@ function potionArt(id) {
 
 function potionsHtml(potions) {
   return (potions || []).map((p) => {
-    if (p.id === "Potion Slot") return `<div class="potion empty">·</div>`;
+    // An empty slot: the game's placeholder bottle. (Not class "empty": that is the big empty-state box.)
+    if (p.id === "Potion Slot") return state.game.available
+      ? `<div class="potion art slot" title="空药水栏"><img src="${G("images/potion/potion_placeholder.png")}" alt="空药水栏"></div>`
+      : `<div class="potion slot">·</div>`;
     const info = state.catalog.potions[p.id];
     const art = potionArt(p.id);
     return `<div class="potion ${art ? "art" : ""}" data-tip="${tipHtml(`${p.name}${info && info.name !== p.name ? ` (${info.name})` : ""}`, info?.rarity || "", info?.text || "")}">${art || "⚗"}</div>`;
