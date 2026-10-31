@@ -38,5 +38,40 @@
   "text": "On the map, choose <n> takes the index in the \"Next:\" list, not the map column. \"Next: 0 M(x1) 1 M(x3) 2 M(x4) 3 M(x6)\" -> choose 1 goes to column 3. I typed choose 3 meaning column 3, landed on column 6 and lost the planned early shop route (ran into two elites instead).",
   "run": "20261023_200622_seed--4007081388742978760",
   "floor": 8
+ },
+ {
+  "text": "When planning a route, check each planned room's onward exits, not just the room. In Act 2 I planned \"? then elite if HP>60%\", but that ? (col5>6) led ONLY to the elite, so I entered Gremlin Leader at 24/79 with no choice (won, barely). If a room has a single exit to an elite, decide at the previous fork with current HP.",
+  "run": "20261028_204538_seed-22307986",
+  "floor": 24
+ },
+ {
+  "text": "Collector (A5, 282 HP) killed me on F33 from 48/79. Pattern seen: T1 summon 2 Torchheads (~39 HP, hit 7 then 10 each), Collector hits 21, then on ~T4 a STRONG DEBUFF (3 Vulnerable/Weak/Frail on me), then it resummons and hits 31 + 2x10 = ~51 with Vulnerable. Plan the whole fight around that debuff turn: kill Torchheads with AoE (Immolate/Combust/Cleave) by T3, keep the big block (Ghostly Armor, Power Through, potions like Dexterity) for the turn AFTER the debuff, and enter with 60+ HP. A deck with ~30 damage/turn and no Disarm/Shockwave/Flame Barrier cannot outlast it.",
+  "run": "20261028_204538_seed-22307986",
+  "floor": 33
+ },
+ {
+  "text": "Berserk's Vulnerable is expensive at A5: playing it on turn 1 in front of 2+ attackers cost me 7-11 extra HP several times in Act 2 (Centurion+Mystic took me 42->20). Play Berserk on a turn when enemies are not attacking (buff/debuff intents), or skip it in short fights.",
+  "run": "20261028_204538_seed-22307986",
+  "floor": 33
+ },
+ {
+  "text": "Writhing Mass (Act 3, 160 HP, Reactive + Malleable): every hit that gets through its block re-rolls its intent, and it won't repeat a move. Its big hit is ~38 (more with my Vulnerable). When the shown intent is survivable and blocking can cover it, don't attack after blocking, since a re-roll can land on the big hit. Front-load damage on its non-attack turns (Implant/debuff). I went 51 -> 11 HP against it.",
+  "run": "20261028_211549_seed-22307987",
+  "floor": 45
+ },
+ {
+  "text": "Necronomicon (Cursed Tome event, ~16 HP total) was worth it: the first 2+ cost attack each turn is played twice. Immolate+ x2 (56-60 AoE) cleared whole Act 2/3 hallway fights in one card, Perfected Strike/Heavy Blade+ x2 did 48-84, and Whirlwind with X>=2 counts too. A card made 0-cost this turn (Attack Potion) is NOT doubled. Gremlin Horn after multi-kills gives the energy back.",
+  "run": "20261028_211549_seed-22307987",
+  "floor": 45
+ },
+ {
+  "text": "Collector (A5): T1 spawns 2 Torch Heads (8 each/turn), T2 fireball ~22, T4 Mega Debuff (Weak+Vuln+Frail 3), T5+ fireball ~25-31 with your Vulnerable. Save Impervious/big block for the turns AFTER the debuff, kill one Torch Head early to cut 8/turn, and Disarm the Collector. Combust's 1 HP/turn self-damage becomes lethal once HP is in single digits - don't play it in a boss fight at low Max HP.",
+  "run": "20261031_163513_seed-22307988",
+  "floor": 33
+ },
+ {
+  "text": "Act 2 A5 hallway fights cost me 15-35 HP each with a block-light deck (Mugger+Looter, Chosen, 3 Cultists, Byrd+Chosen, Shelled Parasite+Fungi). Prioritise block cards (Shrug, Flame Barrier, Impervious) and a removal over more attacks in late Act 1/early Act 2, and use a Lee's Waffle / shop heal when HP < 35%.",
+  "run": "20261031_163513_seed-22307988",
+  "floor": 33
  }
 ]
