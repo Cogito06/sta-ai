@@ -338,59 +338,109 @@ tr.win .track i { background: var(--gold); }
   main { padding: 16px; }
 }
 
-/* ===== Slay the Spire theme: the game's own colours over the wiki layout, and the spire behind the page ===== */
+/* ===== Slay the Spire theme: the game's own art (read from the local install) and colours ===== */
+/* Type after the Research Cosmos guide: Noto Serif SC titles, sans body, mono for data. */
+@font-face { font-family: "Spire Serif"; font-weight: 700; font-display: swap; src: local("Source Han Serif SC Bold"), url("/game/font/zhs/SourceHanSerifSC-Bold.otf"); }
 :root {
   --bg: #0b0f15;
-  --surface: rgba(20, 27, 36, .9);
-  --surface2: rgba(29, 39, 51, .92);
-  --surface3: #26313f;
-  --line: #2c3a4a;
-  --line2: #46596d;
-  --text: #ebe6da;
-  --muted: #98a0a8;
-  --faint: #66707b;
+  --surface: rgba(17, 22, 28, .88);
+  --surface2: rgba(27, 34, 42, .92);
+  --surface3: #29323c;
+  --line: rgba(239, 200, 81, .14);
+  --line2: rgba(239, 200, 81, .3);
+  --text: #f3ead6;            /* the game's cream text */
+  --muted: #a7a596;
+  --faint: #6d6c62;
   --accent: #e0453b;          /* HP red */
   --gold: #efc851;            /* the game's keyword gold */
-  --blue: #6fb1e0;            /* block */
+  --blue: #87cdea;            /* the game's keyword blue, block */
   --green: #7fd16b;           /* upgraded card */
   --attack: #b5442f; --skill: #4e8a4a; --power: #3f74a8; --curse: #6a4a86; --status: #5f646b;
-  --parch: #d8c8a4; --parch-ink: #3b2b1a;
-  --serif: "Noto Serif SC", "Songti SC", "STSong", ui-serif, serif;
-  --sans: "Inter", "Avenir Next", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --parch: #d9c8a2; --parch-ink: #3b2b1a;
+  --serif: "Noto Serif SC", "Spire Serif", "Songti SC", "STSong", ui-serif, serif;
+  --sans: "Avenir Next", "SF Pro Text", -apple-system, "PingFang SC", "Segoe UI", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
-body { background: linear-gradient(180deg, #0d1420 0%, #0b0f15 60%) fixed, #0b0f15; font-size: 15px; line-height: 1.65; }
+body { background: #0b0f15; font-size: 15.2px; line-height: 1.7; }
 a { color: var(--gold); }
-.spire-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.spire-bg svg { position: absolute; left: 50%; top: 0; width: min(760px, 90vw); height: auto; transform: translate(-50%, 0); will-change: transform; }
-.spire-bg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 90% at 50% 50%, transparent 30%, rgba(11,15,21,.8) 100%); }
+code, .seed, .step-label, .log-item .sn, .log-item .act, .diff, .chip, .stat .num, td { font-variant-numeric: tabular-nums; }
+
+/* the title screen's spire behind the page: sky, tower, glows and drifting clouds from title/title.atlas */
+.spire-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: #1d2a2c; }
+.spire-bg .sky { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.spire-bg .stage { position: absolute; left: 0; top: 0; width: 1920px; transform-origin: 0 0; will-change: transform; }
+.spire-bg .stage > div { position: absolute; background-repeat: no-repeat; }
+.spire-bg .glow { mix-blend-mode: screen; animation: flicker 5s ease-in-out infinite alternate; }
+.spire-bg .glow.b { animation-duration: 3.4s; animation-delay: -1.2s; }
+.spire-bg .cloud { animation: drift 90s linear infinite alternate; opacity: .85; }
+.spire-bg .cloud.slow { animation-duration: 140s; }
+@keyframes flicker { from { opacity: .45; } to { opacity: 1; } }
+@keyframes drift { from { translate: -60px 0; } to { translate: 60px 0; } }
+/* keep the art behind the panels quiet enough to read over */
+.spire-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,11,15,.25) 0%, rgba(8,11,15,.62) 30%, rgba(8,11,15,.7) 70%, rgba(8,11,15,.4) 100%); }
 .topbar, main { position: relative; z-index: 1; }
-.topbar { position: sticky; z-index: 10; background: rgba(12, 17, 24, .94); }
-.logo { background: none; color: var(--gold); }
+.topbar { position: sticky; z-index: 10; background: rgba(10, 13, 17, .9); border-bottom-color: var(--line2); }
+.topbar-inner { height: 64px; }
+.logo { width: auto; height: 44px; background: none; border-radius: 0; color: var(--gold); }
+.logo img { height: 44px; width: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
 .logo svg { width: 24px; height: 24px; }
-.brand-title, .section-title, .panel-title, .wiki h1, .wiki h2, .wiki h3, .infobox .ib-title { font-family: var(--serif); letter-spacing: 0; }
-.brand-title { font-weight: 700; font-size: 18px; }
-.section-title { font-weight: 700; font-size: 30px; }
-.panel-title { font-weight: 600; }
+.brand-title, .section-title, .panel-title, .wiki h1, .wiki h2, .wiki h3, .infobox .ib-title, .go-title { font-family: var(--serif); letter-spacing: 0; }
+.brand-title { font-weight: 700; font-size: 17px; color: var(--gold); }
+.section-title { font-weight: 600; font-size: 30px; line-height: 36px; color: var(--text); text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+.page-desc { color: #c9c3b1; }
+.crumbs { letter-spacing: .02em; }
+/* eyebrow labels: sans 600, wide tracking, never uppercase */
+.panel-title { font-family: var(--sans); font-size: 11.5px; font-weight: 600; letter-spacing: .22em; text-transform: none; color: var(--gold); }
+.panel-title .hint { letter-spacing: 0; }
+.stat .lbl, .data th, .toc .toc-title, .memo b { font-size: 11.5px; font-weight: 600; letter-spacing: .22em; text-transform: none; }
+.tabs button { font-size: 15px; }
 .tabs button.active { color: var(--gold); }
 .tabs button.active::after { background: var(--gold); }
-.panel, .tip-card, .infobox, .table-wrap, .stat { backdrop-filter: blur(3px); }
-.stat .num { font-family: var(--serif); font-weight: 700; }
+.panel, .tip-card, .infobox, .table-wrap, .stat { backdrop-filter: blur(4px); border-color: var(--line); }
+.stat { display: flex; align-items: center; gap: 12px; }
+.stat .gico { width: 40px; height: 40px; flex: none; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+.stat .num { font-family: var(--serif); font-weight: 700; color: var(--text); }
+.stat .num.gold { color: var(--gold); }
 .wiki h2 { color: var(--gold); }
 .tip-card .tip-head b { color: var(--gold); font-family: var(--serif); }
+.btn.primary { background: #9c2b22; border-color: #c8493c; }
+.btn.active { background: var(--gold); color: #1a1408; border-color: var(--gold); }
 /* the game's tooltip: dark box, gold title */
-.tooltip { background: rgba(14, 19, 26, .97); border: 1px solid var(--line2); }
-.tooltip .tt-title { color: var(--gold); }
-/* card frames by type, cost orb like the game */
-.card.SKILL { --frame: var(--skill); }
-/* the parchment map */
-.panel.map, .map { background: var(--parch); border-color: #a99470; box-shadow: inset 0 0 30px rgba(90,60,20,.35); backdrop-filter: none; }
-.map .panel-title { color: var(--parch-ink); border-bottom-color: rgba(59,43,26,.3); }
-.map .edge { stroke: rgba(59,43,26,.35); }
-.map .edge.walk { stroke: var(--parch-ink); stroke-width: 2.5; stroke-dasharray: none; filter: none; }
-.map .node circle { fill: var(--parch); stroke: rgba(59,43,26,.55); }
-.map .node.walk circle { fill: #c5b089; stroke: var(--parch-ink); }
-.map .node.here circle { stroke: #a3261c; stroke-width: 3; }
-.map .node text { fill: var(--parch-ink); }
-.map .node.E circle { stroke: #a3261c; }
-@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
-.panel-title { font-size: 15px; text-transform: none; color: var(--text); }
+.tooltip { background: rgba(18, 24, 29, .97); border: 1px solid var(--line2); }
+.tooltip .tt-title { color: var(--gold); font-family: var(--serif); }
+/* top-panel icons and intents from images/ui */
+.gico { display: inline-block; vertical-align: middle; object-fit: contain; }
+.stat-pill .gico { width: 26px; height: 26px; margin: -4px 0; }
+.intent .gico { width: 28px; height: 28px; margin: -6px 0; }
+.intent { background: rgba(0,0,0,.35); }
+/* relics and potions: the game's own images */
+.relic.art { width: 40px; height: 40px; background: radial-gradient(circle, rgba(255,255,255,.07), transparent 70%); border-color: transparent; padding: 0; }
+.relic.art img { width: 100%; height: 100%; object-fit: contain; transform: scale(1.35); filter: drop-shadow(0 1px 2px rgba(0,0,0,.8)); }
+/* card art from cards/cards.atlas, cropped with background-position */
+.card .art { height: 58px; margin: 6px -2px 4px; border-radius: 3px; background-repeat: no-repeat; border: 1px solid rgba(0,0,0,.5); box-shadow: inset 0 0 8px rgba(0,0,0,.6); }
+.card .cname { font-family: var(--serif); }
+.card .ctext { font-size: 11.5px; }
+/* the game's parchment map (images/ui/map/mapTop|Mid|Bot) with its room icons */
+.panel.map { background: rgba(17, 22, 28, .88); }
+.mapsheet { position: relative; max-width: 440px; margin: 0 auto; overflow: hidden; border-radius: 4px; }
+.mapsheet .paper { position: absolute; inset: 0; display: flex; flex-direction: column; isolation: isolate; background: #8f8a7c; }
+.mapsheet .paper img { display: block; width: 152%; margin-left: -26%; flex: 1 1 0; min-height: 0; object-fit: fill; }
+.mapsheet .paper img { filter: brightness(1.18) sepia(.35); }
+.mapsheet .paper::after { content: ""; position: absolute; inset: 0; background: #f3dfb4; mix-blend-mode: multiply; }
+.mapsheet.plain { background: var(--parch); }
+.mapsheet svg { position: relative; width: 100%; display: block; }
+.map .edge { stroke: rgba(59,43,26,.4); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; }
+.map .edge.walk { stroke: #5a1f16; stroke-width: 3; stroke-dasharray: none; }
+/* the game draws map icons white and tints them with ink */
+.map .node image, .map .boss image { filter: brightness(0); opacity: .5; }
+.map .node.walk image { opacity: .92; }
+.map .boss image { opacity: .82; }
+.map .node circle.ring { fill: none; stroke: none; }
+.map .node.walk circle.ring { fill: rgba(122, 40, 26, .12); stroke: rgba(90, 31, 22, .7); stroke-width: 2; }
+.map .node.here circle.ring { fill: rgba(176, 38, 26, .2); stroke: #b0261a; stroke-width: 4; }
+.map .node text { font-size: 13px; text-anchor: middle; dominant-baseline: central; fill: var(--parch-ink); }
+.map .boss-name { font-family: var(--serif); font-size: 16px; font-weight: 700; fill: var(--parch-ink); text-anchor: middle; }
+.go-title { font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .live-dot, .spire-bg .glow, .spire-bg .cloud { animation: none; } }
+.tabs { scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }

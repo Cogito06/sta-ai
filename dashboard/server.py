@@ -3,7 +3,8 @@
 python -m dashboard.server [--port 8780]  then open http://localhost:8780
 
 Reads runs/<run>/run.jsonl and raw/*.json, runs/lessons.json, guides/*.md, runs/eval1/*.patch and
-docs/eval-baseline.md. Never writes anything and never talks to the game.
+docs/eval-baseline.md. Never writes anything and never talks to the game. Game art is read from the
+local install at request time (dashboard/game_assets.py), never copied into the repo.
 """
 import argparse
 import http.server
@@ -13,9 +14,13 @@ import re
 import urllib.parse
 from pathlib import Path
 
+from dashboard.game_assets import GameAssets
+
 ROOT = Path(__file__).resolve().parent.parent
 RUNS = ROOT / "runs"
 STATIC = Path(__file__).resolve().parent / "static"
+
+GAME = GameAssets()
 
 # Per-run caches, keyed by run id and invalidated when run.jsonl changes.
 _summary_cache = {}
@@ -211,8 +216,12 @@ def detail(run_id):
     for gs in states:
         if gs.get("map") and gs.get("act") not in maps:
             maps[gs.get("act")] = gs["map"]
+    bosses = {}
+    for gs in states:
+        if gs.get("act_boss") and gs.get("act") not in bosses:
+            bosses[gs.get("act")] = gs["act_boss"]
     memory = read_json(run_dir / "memory.json")
-    data = {"summary": summarize(run_dir), "log": log, "timeline": timeline, "maps": maps,
+    data = {"summary": summarize(run_dir), "log": log, "timeline": timeline, "maps": maps, "bosses": bosses,
             "path": visited_path(log, states, maps), "memory": memory}
     _detail_cache[run_id] = (mtime, data)
     return data
@@ -285,6 +294,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
             kind += "; charset=utf-8"
         self.send_response(200)
         self.send_header("Content-Type", kind)
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_game(self, path):
+        body = GAME.read(path)
+        if body is None:
+            self.send_error(404)
+            return
+        kind = mimetypes.guess_type(path)[0] or "application/octet-stream"
+        self.send_response(200)
+        self.send_header("Content-Type", kind)
+        # The jar only changes when the game updates.
+        self.send_header("Cache-Control", "max-age=86400")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -296,6 +320,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send_file(STATIC / "index.html")
         if parts[0] == "static":
             return self.send_file(STATIC.joinpath(*parts[1:]))
+        if parts[0] == "game":
+            return self.send_game("/".join(parts[1:]))
         if parts[0] != "api":
             return self.send_error(404)
         route = parts[1:]
@@ -314,6 +340,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send_json(knowledge())
         if route == ["catalog"]:
             return self.send_json(catalog())
+        if route == ["game"]:
+            return self.send_json(GAME.index(catalog()))
         if route == ["live"]:
             return self.send_json(live())
         return self.send_json({"error": "unknown endpoint"}, 404)
@@ -324,7 +352,14 @@ def main():
     # 8765 is the game link's port (bridge/game_link.py).
     parser.add_argument("--port", type=int, default=8780)
     parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--game-dir", help="Slay the Spire install folder, for the game's own art (default: STS_GAME_DIR "
+                        "or the Steam library on E:)")
     args = parser.parse_args()
+    global GAME
+    if args.game_dir:
+        GAME = GameAssets(args.game_dir)
+    if not GAME.available:
+        print(f"Game not found at {GAME.game_dir}; the page will show no game art.")
     server = http.server.ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Dashboard: http://localhost:{args.port}")
     server.serve_forever()

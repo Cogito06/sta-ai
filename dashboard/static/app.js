@@ -17,11 +17,17 @@ const SCREEN_NAME = {
   REST: "休息处", BOSS_REWARD: "Boss 遗物", GRID: "选择卡牌", HAND_SELECT: "选择手牌", GAME_OVER: "结算", CHEST: "宝箱", NONE: "战斗",
 };
 const TYPE_NAME = { ATTACK: "攻击", SKILL: "技能", POWER: "能力", CURSE: "诅咒", STATUS: "状态" };
+const MAP_ICON = { M: "monster", E: "elite", R: "rest", $: "shop", T: "chest", "?": "event" };
+const BOSS_ICON = [["guardian", "guardian"], ["hexaghost", "hexaghost"], ["slime", "slime"], ["collector", "collector"],
+  ["automaton", "automaton"], ["champ", "champ"], ["awakened", "awakened"], ["time eater", "timeeater"], ["donu", "donu"],
+  ["deca", "donu"], ["heart", "heart"]];
+const bossIcon = (name) => (BOSS_ICON.find(([k]) => String(name || "").toLowerCase().includes(k)) || [])[1];
 const BAD_POWERS = new Set(["Vulnerable", "Weakened", "Frail", "Poison", "Entangled", "No Draw", "Hex", "Constricted", "Shackled", "Draw Reduction", "Confusion"]);
 
 const state = {
   runs: [],
   catalog: { cards: {}, relics: {}, potions: {} },
+  game: { available: false, relics: {}, cards: {} },  // which game image belongs to each relic and card
   knowledge: null,
   run: null,          // detail of the run shown in replay
   step: 1,
@@ -39,60 +45,77 @@ const pageHead = (crumbs, title, small, desc) => `
     ${desc ? `<p class="page-desc">${esc(desc)}</p>` : ""}
   </div>`;
 
-// ---------- the spire behind the page ----------
-// A tall tower drawn once; scrolling down the page climbs it (the tower slides down so higher tiers come into view).
-(function tower() {
-  const box = $(".spire-bg");
-  const W = 600, H = 3000, top = 300, tiers = 13;
-  let rnd = 11;
-  const rand = () => ((rnd = (rnd * 9301 + 49297) % 233280) / 233280);
-  // Three acts from the ground up: mossy stone, warm city stone, the violet Beyond.
-  const zone = (f) => (f < 0.36 ? ["#18221f", "#22302b"] : f < 0.7 ? ["#1f1d1a", "#2b2823"] : ["#1a1826", "#252236"]);
-  let stars = "";
-  for (let k = 0; k < 90; k++) stars += `<circle cx="${rand() * W}" cy="${rand() * H * 0.8}" r="${0.6 + rand() * 1.1}" fill="#cfd8e6" opacity="${0.15 + rand() * 0.5}"/>`;
-  let body = "";
-  const xAt = (w) => [(W - w) / 2, (W + w) / 2];
-  for (let i = 0; i < tiers; i++) {
-    const f0 = i / tiers, f1 = (i + 1) / tiers;
-    const y0 = H - f0 * (H - top), y1 = H - f1 * (H - top) + 10;
-    const w0 = 330 - f0 * 270, w1 = 330 - f1 * 270 + 14;
-    const [dark, lit] = zone(f0);
-    const [a0, b0] = xAt(w0), [a1, b1] = xAt(w1);
-    body += `<path d="M${a0} ${y0} L${a1} ${y1} L${b1} ${y1} L${b0} ${y0} Z" fill="${dark}"/>`;
-    // light from the left: a lit face on the left third
-    body += `<path d="M${a0} ${y0} L${a1} ${y1} L${a1 + w1 * 0.32} ${y1} L${a0 + w0 * 0.32} ${y0} Z" fill="${lit}"/>`;
-    // stone courses
-    for (let y = y0 - 34; y > y1 + 10; y -= 34) {
-      const t = (y0 - y) / (y0 - y1), w = w0 + (w1 - w0) * t, [a, b] = xAt(w);
-      body += `<line x1="${a}" x2="${b}" y1="${y}" y2="${y}" stroke="#000" stroke-opacity=".22"/>`;
+// ---------- game art ----------
+// Images come from the local game install through the dashboard server (/game/<path inside desktop-1.0.jar>).
+const G = (path) => `/game/${path}`;
+const gimg = (path, cls = "gico", alt = "") => `<img class="${cls}" src="${G(path)}" alt="${esc(alt)}" onerror="this.remove()">`;
+
+// libGDX texture atlas -> {region: {page, x, y, w, h, ow, oh, ox, oy}}
+function parseAtlas(text) {
+  const regions = {};
+  let page = null, cur = null;
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) { page = null; continue; }
+    if (!line.startsWith(" ") && !line.includes(":")) {
+      if (page === null) page = line.trim();
+      else regions[line.trim()] = cur = { page };
+      continue;
     }
-    // buttresses at the foot of each tier
-    body += `<path d="M${a0 - 16} ${y0} L${a0 + 4} ${y0 - 70} L${a0 + 4} ${y0} Z" fill="${dark}"/><path d="M${b0 + 16} ${y0} L${b0 - 4} ${y0 - 70} L${b0 - 4} ${y0} Z" fill="${dark}"/>`;
-    // ledge with teeth
-    const lw = w1 + 26, [la] = xAt(lw);
-    body += `<rect x="${la}" y="${y1 - 8}" width="${lw}" height="9" fill="#2f3845"/>`;
-    for (let x = la + 4; x < la + lw - 8; x += 16) body += `<rect x="${x}" y="${y1 - 15}" width="8" height="8" fill="#2f3845"/>`;
-    // arched windows, a few lit
-    const n = 1 + Math.floor(rand() * 3);
-    for (let k = 0; k < n; k++) {
-      const wy = y1 + 40 + rand() * (y0 - y1 - 110), t = (y0 - wy) / (y0 - y1), w = (w0 + (w1 - w0) * t) * 0.6;
-      const wx = (W - w) / 2 + rand() * (w - 12), on = rand() < 0.6;
-      body += `<path d="M${wx} ${wy + 22} L${wx} ${wy + 6} A6 6 0 0 1 ${wx + 12} ${wy + 6} L${wx + 12} ${wy + 22} Z" fill="${on ? "#e7b55a" : "#0b0f15"}" opacity="${on ? 0.45 + rand() * 0.4 : 0.8}"/>`;
+    const m = /^\s+(xy|size|orig|offset):\s*(-?\d+),\s*(-?\d+)/.exec(line);
+    if (cur && m) {
+      const [k1, k2] = { xy: ["x", "y"], size: ["w", "h"], orig: ["ow", "oh"], offset: ["ox", "oy"] }[m[1]];
+      cur[k1] = +m[2]; cur[k2] = +m[3];
     }
   }
-  const cx = W / 2;
-  const needle = `<path d="M${cx} ${top - 230} L${cx + 22} ${top + 20} L${cx - 22} ${top + 20} Z" fill="#252236"/><path d="M${cx} ${top - 230} L${cx - 22} ${top + 20} L${cx - 8} ${top + 20} Z" fill="#2e2a42"/>`;
-  const heart = `<g transform="translate(${cx} ${top - 270})"><circle r="90" fill="#e0453b" opacity=".06"/><circle r="46" fill="#e0453b" opacity=".1"/>
-    <path d="M0 24 C-28 4 -24 -20 -8 -20 C-2 -20 0 -14 0 -11 C0 -14 2 -20 8 -20 C24 -20 28 4 0 24 Z" fill="#a52b22"/></g>`;
-  const ground = `<rect x="0" y="${H - 6}" width="${W}" height="6" fill="#0b0f15"/>`;
-  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}">${stars}${heart}${needle}${body}${ground}</svg>`;
-  const svg = box.querySelector("svg");
+  return regions;
+}
+
+// ---------- the spire behind the page ----------
+// The title screen's own spire (title/title.atlas): sky, the tower in two halves, its glowing windows and drifting
+// clouds. Scrolling down the page climbs it, from the ground to the burning cap.
+(async function spire() {
+  const box = $(".spire-bg");
+  let atlas;
+  try {
+    const res = await fetch(G("title/title.atlas"));
+    if (!res.ok) return;
+    atlas = parseAtlas(await res.text());
+  } catch { return; }
+  const H = 2280; // mg3Top (1140) over mg3Bot (1140)
+  // A region drawn inside its original frame, the frame's top at frameTop (atlas offsets count from the bottom).
+  const piece = (name, frameTop, cls = "") => {
+    const r = atlas[name];
+    if (!r) return "";
+    const top = frameTop + r.oh - r.oy - r.h;
+    return `<div class="${cls}" style="left:${r.ox}px;top:${top}px;width:${r.w}px;height:${r.h}px;background-image:url(${G("title/" + r.page)});background-position:-${r.x}px -${r.y}px"></div>`;
+  };
+  const sky = atlas["jpg/sky"];
+  box.innerHTML = `<div class="sky"></div>
+    <div class="stage" style="height:${H}px">
+      ${piece("mg3Top", 0)}${piece("mg3Bot", 1140)}
+      ${piece("mg3TopGlow1", 0, "glow")}${piece("mg3TopGlow2", 0, "glow b")}${piece("mg3BotGlow", 1140, "glow")}
+      ${piece("topCloud2", -40, "cloud")}${piece("topCloud5", -40, "cloud slow")}${piece("midCloud10", 120, "cloud slow")}
+      ${piece("mg2", H - 848)}${piece("mg1", H - 332)}${piece("fg", H - 626)}
+    </div>`;
+  // The sky sits in a corner of its page; crop it like the other regions and scale it to cover the window.
+  if (sky) box.querySelector(".sky").innerHTML = `<div style="position:absolute;left:0;top:0;background:url(${G("title/" + sky.page)}) -${sky.x}px -${sky.y}px no-repeat;transform-origin:0 0"></div>`;
+  const stage = box.querySelector(".stage");
+  const skyImg = box.querySelector(".sky > div");
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   function place() {
-    const th = svg.getBoundingClientRect().height, vh = innerHeight;
+    const vw = innerWidth, vh = innerHeight;
+    // Wide enough to cover the window, tall enough that there is some tower to climb.
+    const k = Math.max(vw / 1920, (vh * 1.25) / H);
     const room = Math.max(1, document.documentElement.scrollHeight - vh);
     const p = still ? 0 : Math.min(1, scrollY / room);
-    svg.style.transform = `translate(-50%, ${-(th - vh) * (1 - p)}px)`;
+    const dx = Math.min(0, (vw - 1920 * k) * 0.2);
+    stage.style.transform = `translate(${dx}px, ${-(H * k - vh) * (1 - p)}px) scale(${k})`;
+    if (skyImg && sky) {
+      const ks = Math.max(vw / sky.w, vh / sky.h);
+      skyImg.style.width = `${sky.w}px`;
+      skyImg.style.height = `${sky.h}px`;
+      skyImg.style.transform = `scale(${ks})`;
+    }
   }
   let queued = false;
   const later = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; place(); }); } };
@@ -175,8 +198,10 @@ function renderHall() {
   root.innerHTML = `
     ${pageHead(["对局"], "对局记录", "", "AI 铁甲战士的每一次攀登。点击一行查看逐步回放。")}
     <div class="grid stats">
-      ${[["攀登次数", real.length, ""], ["登顶", wins, "gold"], ["最高楼层", best, ""], ["平均楼层", avg, ""], ["最高分", bestScore || "—", "accent"]]
-        .map(([l, n, c]) => `<div class="panel stat"><div class="lbl">${l}</div><div class="num ${c}">${n}</div></div>`).join("")}
+      ${[["攀登次数", real.length, "", "images/ui/topPanel/map.png"], ["登顶", wins, "gold", "images/ui/map/boss/heart.png"],
+        ["最高楼层", best, "", "images/ui/topPanel/floor.png"], ["平均楼层", avg, "", "images/ui/topPanel/floor.png"],
+        ["最高分", bestScore || "—", "gold", "images/ui/topPanel/ascension.png"]]
+        .map(([l, n, c, icon]) => `<div class="panel stat">${gimg(icon)}<div><div class="lbl">${l}</div><div class="num ${c}">${n}</div></div></div>`).join("")}
     </div>
     <div class="filters">
       <input type="search" id="run-search" placeholder="搜索种子、结果、日期">
@@ -373,17 +398,27 @@ function powersHtml(powers) {
   }).join("");
 }
 
+// The game's intent icons (images/ui/intent); plain attacks grow with the damage like in the game.
+const INTENT_ICON = { ATTACK_BUFF: "attackBuff", ATTACK_DEBUFF: "attackDebuff", ATTACK_DEFEND: "attackDefend", BUFF: "buff1",
+  DEBUFF: "debuff1", STRONG_DEBUFF: "debuff2", DEFEND: "defend", DEFEND_BUFF: "defendBuff", DEFEND_DEBUFF: "defend",
+  ESCAPE: "escape", MAGIC: "magic", SLEEP: "sleep", STUN: "stun", UNKNOWN: "unknown" };
+const INTENT_NAME = { ATTACK: "攻击", ATTACK_BUFF: "攻击+强化", ATTACK_DEBUFF: "攻击+减益", ATTACK_DEFEND: "攻击+格挡", BUFF: "强化",
+  DEBUFF: "减益", STRONG_DEBUFF: "强力减益", DEFEND: "格挡", DEFEND_BUFF: "格挡+强化", DEFEND_DEBUFF: "格挡+减益", ESCAPE: "逃跑",
+  MAGIC: "魔法", SLEEP: "睡眠", STUN: "眩晕", UNKNOWN: "未知" };
 function intentHtml(m) {
   const i = m.intent || "";
+  const name = INTENT_NAME[i] || i || "—";
   if (i.startsWith("ATTACK")) {
     const dmg = m.move_adjusted_damage > 0 ? m.move_adjusted_damage : "?";
+    const total = (m.move_adjusted_damage || 0) * Math.max(1, m.move_hits || 1);
+    const tier = [5, 10, 15, 20, 25, 30].findIndex((t) => total < t) + 1 || 7;
+    const icon = i === "ATTACK" ? `attack/attack_intent_${tier}` : INTENT_ICON[i];
     const hits = m.move_hits > 1 ? `×${m.move_hits}` : "";
-    const extra = i === "ATTACK" ? "" : i.replace("ATTACK_", "+");
-    return `<span class="intent atk">⚔ ${dmg}${hits} ${esc(extra)}</span>`;
+    return `<span class="intent atk" title="${esc(name)}">${gimg(`images/ui/intent/${icon}.png`)}${dmg}${hits}</span>`;
   }
-  if (i.includes("DEBUFF")) return `<span class="intent deb">☠ ${esc(i)}</span>`;
-  if (i.includes("BUFF") || i.includes("DEFEND")) return `<span class="intent buf">✦ ${esc(i)}</span>`;
-  return `<span class="intent">${esc(i || "—")}</span>`;
+  const cls = i.includes("DEBUFF") ? "deb" : i.includes("BUFF") || i.includes("DEFEND") ? "buf" : "";
+  const icon = INTENT_ICON[i];
+  return `<span class="intent ${cls}">${icon ? gimg(`images/ui/intent/${icon}.png`) : ""}${esc(name)}</span>`;
 }
 
 function cardHtml(c, letter) {
@@ -395,16 +430,28 @@ function cardHtml(c, letter) {
     ${cost !== "" ? `<div class="cost">${esc(cost)}</div>` : ""}
     ${letter ? `<div class="letter">${letter}</div>` : ""}
     <div class="cname">${esc(c.name)}</div>
+    ${cardArt(c.id)}
     <div class="ctext">${esc(info.text.length > 70 ? info.text.slice(0, 68) + "…" : info.text)}</div>
     <div class="ctype">${TYPE_NAME[c.type] || ""}</div>
   </div>`;
 }
 
+// The card's portrait from cards/cards.atlas, scaled to the tile's 100px width.
+function cardArt(id) {
+  const r = state.game.cards?.[id];
+  if (!r) return "";
+  const k = 100 / r.w;
+  return `<div class="art" style="background-image:url(${G(r.page)});background-size:${2048 * k}px;background-position:-${r.x * k}px -${r.y * k}px"></div>`;
+}
+
 function relicsHtml(relics) {
   return (relics || []).map((r) => {
     const info = state.catalog.relics[r.id];
+    const tip = tipHtml(`${r.name}${info && info.name !== r.name ? ` (${info.name})` : ""}`, info?.tier || "", info?.text || "");
+    const img = state.game.relics?.[r.id];
+    if (img) return `<div class="relic art" data-tip="${tip}"><img src="${G(img)}" alt="${esc(r.name)}"></div>`;
     const initial = (info?.name || r.id || "?").slice(0, 1);
-    return `<div class="relic" data-tip="${tipHtml(`${r.name}${info && info.name !== r.name ? ` (${info.name})` : ""}`, info?.tier || "", info?.text || "")}">${esc(initial)}</div>`;
+    return `<div class="relic" data-tip="${tip}">${esc(initial)}</div>`;
   }).join("");
 }
 
@@ -420,8 +467,9 @@ function renderState(gs) {
   const top = `
     <div class="state-top">
       ${hpBar(gs.current_hp, gs.max_hp, gs.combat?.player?.block || 0)}
-      <span class="stat-pill"><span class="ico">💰</span>${gs.gold ?? "?"}</span>
-      <span class="stat-pill"><span class="ico">🗼</span>F${gs.floor ?? "?"} · 第 ${gs.act ?? "?"} 幕</span>
+      <span class="stat-pill">${gimg("images/ui/topPanel/panelGoldBag.png")}${gs.gold ?? "?"}</span>
+      <span class="stat-pill">${gimg("images/ui/topPanel/floor.png")}F${gs.floor ?? "?"} · 第 ${gs.act ?? "?"} 幕</span>
+      ${gs.ascension_level ? `<span class="stat-pill">${gimg("images/ui/topPanel/ascension.png")}${gs.ascension_level}</span>` : ""}
       <span class="chip">${esc(ROOM_NAME[gs.room_type] || gs.room_type || "")}</span>
       <span class="chip">${esc(SCREEN_NAME[gs.screen_type] || gs.screen_type || "")}</span>
       ${gs.act_boss ? `<span class="chip">Boss：${esc(gs.act_boss)}</span>` : ""}
@@ -549,6 +597,7 @@ function moveChartCursor() {
 }
 
 // ---------- map ----------
+// Drawn on the game's own parchment with its room icons; the walked path is inked over it.
 function renderMap() {
   const run = state.run;
   const acts = Object.keys(run.maps).map(Number).sort();
@@ -561,8 +610,9 @@ function renderMap() {
   const walkEdges = new Set();
   for (let i = 1; i < walked.length; i++) walkEdges.add(`${walked[i - 1]}>${walked[i]}`);
   const maxY = Math.max(...nodes.map((n) => n.y));
-  const W = 420, H = 560, px = (x) => 30 + x * ((W - 60) / 6), py = (y) => H - 50 - y * ((H - 100) / Math.max(1, maxY));
-  let edges = "", circles = "";
+  const W = 420, H = 820, top = 175, S = 40;
+  const px = (x) => 50 + x * ((W - 100) / 6), py = (y) => H - 50 - y * ((H - 50 - top) / Math.max(1, maxY));
+  let edges = "", icons = "";
   for (const n of nodes) {
     for (const c of n.children || []) {
       if (c.y > maxY) continue;
@@ -571,11 +621,21 @@ function renderMap() {
     }
   }
   for (const n of nodes) {
-    const key = `${n.x},${n.y}`;
-    circles += `<g class="node ${n.symbol} ${walkSet.has(key) ? "walk" : ""}" data-node="${key}"><circle cx="${px(n.x)}" cy="${py(n.y)}" r="12"/><text x="${px(n.x)}" y="${py(n.y)}">${ROOM_ICON[n.symbol] || esc(n.symbol)}</text></g>`;
+    const key = `${n.x},${n.y}`, x = px(n.x), y = py(n.y), icon = MAP_ICON[n.symbol];
+    const mark = icon && state.game.available
+      ? `<image href="${G(`images/ui/map/${icon}.png`)}" x="${x - S / 2}" y="${y - S / 2}" width="${S}" height="${S}"/>`
+      : `<text x="${x}" y="${y}">${ROOM_ICON[n.symbol] || esc(n.symbol)}</text>`;
+    icons += `<g class="node ${n.symbol} ${walkSet.has(key) ? "walk" : ""}" data-node="${key}"><circle class="ring" cx="${x}" cy="${y}" r="${S / 2 + 2}"/>${mark}</g>`;
   }
-  const boss = `<g class="node B"><circle cx="${W / 2}" cy="22" r="16" style="stroke:#c0392b;fill:#3a0f0b"/><text x="${W / 2}" y="22">♛</text></g>`;
-  $("#map-view").innerHTML = `<svg viewBox="0 0 ${W} ${H}">${edges}${circles}${boss}</svg>`;
+  const bossName = run.bosses?.[state.act];
+  const bk = bossIcon(bossName);
+  const boss = bk && state.game.available
+    ? `<g class="boss"><image href="${G(`images/ui/map/boss/${bk}.png`)}" x="${W / 2 - 70}" y="8" width="140" height="140"/></g>`
+    : `<text x="${W / 2}" y="80" style="font-size:44px">♛</text>`;
+  const paper = state.game.available
+    ? `<div class="paper">${["mapTop", "mapMid", "mapBot"].map((p) => `<img src="${G(`images/ui/map/${p}.png`)}" alt="">`).join("")}</div>` : "";
+  $("#map-view").innerHTML = `<div class="mapsheet ${paper ? "" : "plain"}">${paper}<svg viewBox="0 0 ${W} ${H}">${boss}
+    ${bossName ? `<text class="boss-name" x="${W / 2}" y="${top - 8}">${esc(bossName)}</text>` : ""}${edges}${icons}</svg></div>`;
   highlightHere();
 }
 function highlightHere() {
@@ -731,6 +791,7 @@ async function refreshRuns() {
 (async function boot() {
   try {
     [state.catalog] = await Promise.all([api("/api/catalog"), refreshRuns()]);
+    state.game = await api("/api/game").catch(() => state.game);
   } catch (e) {
     $("#view-hall").innerHTML = `<div class="empty">无法连接面板服务：${esc(e.message)}</div>`;
     return;
