@@ -82,50 +82,74 @@ const runLabel = (id) => {
 };
 
 // ---------- the spire behind every page ----------
-// Floors map onto its three tiers (one per act) and the tip (the heart); a marker shows the floor in view.
-const TOWER_BANDS = [[0, 940], [17, 680], [34, 430], [51, 200], [56, 70]];
+// A spire taller than the screen. Floors map onto its three tiers (one per act) and the tip (the heart).
+// Scrolling a page climbs it; in replay and live it follows the floor in view, so dragging the steps moves it.
+const TOWER_H = 2000;
+const TOWER_BANDS = [[0, 1880], [17, 1360], [34, 860], [51, 400], [56, 150]];
 function floorY(f) {
   f = Math.max(0, Math.min(56, f || 0));
   for (let i = 1; i < TOWER_BANDS.length; i++) {
     const [f0, y0] = TOWER_BANDS[i - 1], [f1, y1] = TOWER_BANDS[i];
     if (f <= f1) return y0 + ((f - f0) / (f1 - f0)) * (y1 - y0);
   }
-  return 70;
+  return 150;
 }
 function buildTower() {
-  const tiers = [[940, 680, 124, 98], [680, 430, 88, 66], [430, 200, 56, 38]]; // [bottom y, top y, bottom half-width, top half-width]
+  const tiers = [[1880, 1360, 124, 98], [1360, 860, 88, 66], [860, 400, 56, 38]]; // [bottom y, top y, bottom half-width, top half-width]
   let body = "", windows = "";
   tiers.forEach(([yb, yt, wb, wt], i) => {
     body += `<path class="tw-body" d="M${200 - wb} ${yb} L${200 - wt} ${yt} L${200 + wt} ${yt} L${200 + wb} ${yb} Z"/>`;
     body += `<rect class="tw-ledge" x="${200 - wt - 10}" y="${yt - 8}" width="${(wt + 10) * 2}" height="10" rx="2"/>`;
-    for (let y = yb - 34; y > yt + 20; y -= 40) {
+    for (let y = yb - 40; y > yt + 24; y -= 52) {
       const half = wb + ((wt - wb) * (yb - y)) / (yb - yt) - 22;
       for (let x = -half; x <= half; x += Math.max(26, half / 1.5)) windows += `<rect class="tw-win" x="${200 + x - 3}" y="${y - 9}" width="6" height="12" rx="3"/>`;
     }
     body += `<text class="tw-act" x="${200 + wb + 14}" y="${(yb + yt) / 2}">第 ${["一", "二", "三"][i]} 幕</text>`;
   });
-  const spire = `<path class="tw-body" d="M162 200 L200 60 L238 200 Z"/><circle class="tw-heart" cx="200" cy="128" r="9"/>
-    <text class="tw-act" x="252" y="140">心脏</text>`;
-  const land = `<path class="tw-land" d="M-40 1000 L-40 950 Q60 900 130 935 Q200 960 270 930 Q350 895 440 945 L440 1000 Z"/>`;
-  const clouds = `<g class="tw-cloud"><ellipse cx="110" cy="560" rx="90" ry="14"/><ellipse cx="300" cy="575" rx="70" ry="11"/>
-    <ellipse cx="270" cy="330" rx="80" ry="12"/><ellipse cx="120" cy="345" rx="55" ry="9"/></g>`;
+  const spire = `<path class="tw-body" d="M162 400 L200 110 L238 400 Z"/><circle class="tw-heart" cx="200" cy="250" r="10"/>
+    <text class="tw-act" x="252" y="262">心脏</text>`;
+  const land = `<path class="tw-land" d="M-40 2000 L-40 1900 Q60 1850 130 1880 Q200 1905 270 1876 Q350 1842 440 1890 L440 2000 Z"/>`;
+  const clouds = `<g class="tw-cloud"><ellipse cx="110" cy="1120" rx="90" ry="14"/><ellipse cx="300" cy="1150" rx="70" ry="11"/>
+    <ellipse cx="270" cy="660" rx="80" ry="12"/><ellipse cx="120" cy="690" rx="55" ry="9"/><ellipse cx="290" cy="320" rx="60" ry="9"/></g>`;
   const marker = `<g id="tower-runs"></g><g id="tower-mark" style="display:none"><line class="tw-mark" x1="40" x2="360" y1="0" y2="0"/>
     <circle class="tw-mark-dot" cx="200" cy="0" r="6"/><text class="tw-mark-text" x="36" y="-8" text-anchor="end"></text></g>`;
   const box = document.createElement("div");
   box.className = "tower-bg";
   box.setAttribute("aria-hidden", "true");
-  box.innerHTML = `<svg viewBox="-60 0 520 1000" preserveAspectRatio="xMidYMax meet">${land}${body}${spire}${windows}${clouds}${marker}</svg>`;
+  box.innerHTML = `<svg viewBox="-60 0 520 ${TOWER_H}">${land}${body}${spire}${windows}${clouds}${marker}</svg>`;
   document.body.prepend(box);
 }
-function setTowerFloor(floor, label) {
+let towerFocus = null;   // a floor to keep centred (replay, live), or null to follow the page scroll
+function layoutTower() {
+  const box = $(".tower-bg"), svg = box && box.querySelector("svg");
+  if (!svg) return;
+  const avail = box.clientHeight, h = svg.getBoundingClientRect().height;
+  const lowest = Math.min(0, avail - h);   // base at the bottom of the screen
+  let off;
+  if (towerFocus != null) {
+    off = avail * 0.5 - floorY(towerFocus) * (h / TOWER_H);
+  } else {
+    const room = document.documentElement.scrollHeight - window.innerHeight;
+    off = lowest * (1 - (room > 0 ? window.scrollY / room : 0));
+  }
+  svg.classList.toggle("follow", towerFocus != null);
+  svg.style.transform = `translateY(${Math.max(lowest, Math.min(0, off)).toFixed(1)}px)`;
+}
+window.addEventListener("scroll", () => towerFocus == null && layoutTower(), { passive: true });
+window.addEventListener("resize", layoutTower);
+function setTowerFloor(floor, label, follow = false) {
   const g = $("#tower-mark");
   if (!g) return;
-  if (floor == null) { g.style.display = "none"; return; }
-  g.style.display = "";
-  g.setAttribute("transform", `translate(0 ${floorY(floor).toFixed(1)})`);
-  g.querySelector("text").textContent = label || `F${floor}`;
-}
-buildTower();
+  towerFocus = follow ? floor || 0 : null;
+  if (floor == null) g.style.display = "none";
+  else {
+    g.style.display = "";
+    g.setAttribute("transform", `translate(0 ${floorY(floor).toFixed(1)})`);
+    g.querySelector("text").textContent = label || `F${floor}`;
+  }
+  layoutTower();
+}buildTower();
+layoutTower();
 // One dot per run at the floor where it ended, fanned out sideways so runs on the same floor stay visible.
 function setTowerRuns(runs) {
   const g = $("#tower-runs");
@@ -330,7 +354,7 @@ async function setStep(n) {
   state.step = n;
   $("#step-range").value = n;
   const t = run.timeline[n - 1];
-  setTowerFloor(t.floor, `F${t.floor ?? 0}`);
+  setTowerFloor(t.floor, `F${t.floor ?? 0}`, true);
   $("#step-label").textContent = `第 ${n} 步 · F${t.floor ?? "?"} · ${SCREEN_NAME[t.screen] || t.screen || ""}`;
   document.querySelectorAll("#log-list .log-item").forEach((el) => el.classList.toggle("cur", +el.dataset.step === n));
   const cur = $(`#log-list .log-item[data-step="${n}"]`);
@@ -846,7 +870,7 @@ async function pollLive() {
   state.live.run = info.run;
   state.live.steps = info.steps;
   const raw = info.steps ? await api(`/api/run/${encodeURIComponent(info.run)}/step/${info.steps}`).catch(() => null) : null;
-  if (raw) setTowerFloor(raw.floor, `F${raw.floor ?? 0}`);
+  if (raw) setTowerFloor(raw.floor, `F${raw.floor ?? 0}`, true);
   const summary = state.runs.find((r) => r.id === info.run);
   const fresh = Date.now() / 1000 - info.mtime < 120;
   $("#view-live").innerHTML = `
