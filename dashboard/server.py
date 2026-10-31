@@ -71,7 +71,8 @@ def summarize(run_dir):
     last = game_state(read_json(raws[-1])) if raws else {}
     seed = run_dir.name.split("_seed-", 1)[-1]
     start = next((e["input"] for e in log if str(e.get("input", "")).startswith("start_run")), "")
-    named_seed = start.split()[1] if len(start.split()) > 1 else ""
+    # "start_run EVAL3 A5" names the seed; "start_run A5" (random seed) does not.
+    named_seed = next((w for w in start.split()[1:] if not re.fullmatch(r"A\d+", w)), "")
     over = next((e for e in reversed(log) if e.get("screen") == "GAME_OVER"), None)
     result = "进行中"
     score = None
