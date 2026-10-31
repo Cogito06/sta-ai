@@ -455,23 +455,12 @@ function relicsHtml(relics) {
   }).join("");
 }
 
-// The game tints white liquid/hybrid/spots layers per PotionColor in code; these are close stand-ins for those tints.
-const POTION_TINT = {
-  POISON: ["#4bd13b", "#2a7f1f", "#b6ff7a"], BLUE: ["#3d7fe0", "#1c3f8f", "#9fd0ff"], FIRE: ["#ff5a1f", "#b8200f", "#ffd25a"],
-  GREEN: ["#3fbf5a", "#1e6e33", "#a8f0b0"], EXPLOSIVE: ["#ff9a1f", "#c8481a", "#fff07a"], WEAK: ["#9a6ad6", "#4d2f80", "#d9c2ff"],
-  FEAR: ["#3b2a52", "#1b1026", "#a36ad6"], STRENGTH: ["#d8302a", "#7a0f0f", "#ff9c8a"], WHITE: ["#e8e8e8", "#a9a9b0", "#ffffff"],
-  FAIRY: ["#ff8fd1", "#c24c9a", "#fff0fa"], ANCIENT: ["#e8c060", "#8a6420", "#fff2b0"], ELIXIR: ["#f0c040", "#9a6a10", "#fff3b5"],
-  ENERGY: ["#ffd23a", "#e08a10", "#fff7c0"], SWIFT: ["#36c7c0", "#157a78", "#b5fff7"], FRUIT: ["#ff7a4a", "#c03a2a", "#ffe08a"],
-  SNECKO: ["#8fb02a", "#4a6a10", "#e2f07a"], SMOKE: ["#5d5d68", "#2a2a33", "#a8a8b5"], STEROID: ["#c41e3a", "#5a0a18", "#ff7a8a"],
-  SKILL: ["#3fbf5a", "#1e6e33", "#a8f0b0"], ATTACK: ["#d8302a", "#7a0f0f", "#ff9c8a"], POWER: ["#3d7fe0", "#1c3f8f", "#9fd0ff"],
-  NONE: ["#9aa0a8", "#5d636b", "#d5d9de"],
-};
-
 function potionArt(id) {
   const p = state.game.potions?.[id];
   if (!p) return "";
-  const [liquid, hybrid, spots] = POTION_TINT[p.color] || POTION_TINT.NONE;
-  const tinted = (layer, color) => (p[layer] ? `<i style="background:${color};-webkit-mask-image:url(${G(p[layer])});mask-image:url(${G(p[layer])})"></i>` : "");
+  // The white liquid/hybrid/spots layers tinted with the colours the potion's own class gives them (none: not drawn).
+  const { liquid, hybrid, spots } = p.tint || {};
+  const tinted = (layer, color) => (p[layer] && color ? `<i style="background:${color};-webkit-mask-image:url(${G(p[layer])});mask-image:url(${G(p[layer])})"></i>` : "");
   return `<div class="pot-art">${tinted("liquid", liquid)}${tinted("hybrid", hybrid)}${tinted("spots", spots)}${p.glass ? `<img src="${G(p.glass)}" alt="">` : ""}</div>`;
 }
 
@@ -536,6 +525,28 @@ function optionsList(items) {
   return `<div class="options">${items.map((t) => `<div class="memo">${t}</div>`).join("")}</div>`;
 }
 
+// One line of the combat reward screen, with the game's own icon when there is one.
+function rewardHtml(r) {
+  const type = r.reward_type || r.type;
+  const icon = (html, fallback) => (state.game.available && html ? `<span class="reward-ico">${html}</span>` : fallback);
+  switch (type) {
+    case "GOLD":
+    case "STOLEN_GOLD":
+      return `${icon(gimg("images/ui/topPanel/panelGoldBag.png"), "💰")} ${esc(r.gold ?? "?")} 金币${type === "STOLEN_GOLD" ? "（被偷走的）" : ""}`;
+    case "POTION":
+      return `${icon(potionArt(r.potion?.id), "⚗")} ${esc(r.potion?.name || "药水")}`;
+    case "RELIC":
+      return `${icon(state.game.relics?.[r.relic?.id] && `<img class="gico" src="${G(state.game.relics[r.relic.id])}" alt="">`, "◆")} ${esc(r.relic?.name || "遗物")}`;
+    case "CARD":
+      return `${icon(gimg("images/ui/reward/normalCardReward.png"), "🂠")} 卡牌奖励`;
+    case "EMERALD_KEY":
+    case "SAPPHIRE_KEY":
+      return `${icon(gimg(`images/ui/topPanel/key_${type === "EMERALD_KEY" ? "green" : "blue"}.png`), "🔑")} ${type === "EMERALD_KEY" ? "绿宝石钥匙" : "蓝宝石钥匙"}`;
+    default:
+      return esc(type || "未知奖励");
+  }
+}
+
 function screenHtml(gs) {
   const s = gs.screen_state || {};
   switch (gs.screen_type) {
@@ -549,8 +560,7 @@ function screenHtml(gs) {
     case "HAND_SELECT":
       return `<div class="battlefield"><div class="panel-title">选择卡牌 ${s.num_cards ? `<span class="hint">${s.num_cards} 张</span>` : ""}</div><div class="hand">${(s.cards || s.hand || []).map((c) => cardHtml(c)).join("")}</div></div>`;
     case "COMBAT_REWARD":
-      return `<div class="battlefield"><div class="panel-title">战利品</div>${optionsList((s.rewards || []).map((r) => esc(
-        r.type === "GOLD" || r.type === "STOLEN_GOLD" ? `💰 ${r.gold} 金币` : r.type === "POTION" ? `⚗ ${r.potion?.name}` : r.type === "RELIC" ? `◆ ${r.relic?.name}` : r.type === "CARD" ? "🂠 卡牌奖励" : r.type)))}</div>`;
+      return `<div class="battlefield"><div class="panel-title">战利品</div>${optionsList((s.rewards || []).map(rewardHtml))}</div>`;
     case "SHOP_SCREEN":
       return `<div class="battlefield"><div class="panel-title">商店</div>
         <div class="hand">${(s.cards || []).map((c) => `<div>${cardHtml(c)}<div class="price">${c.price}g</div></div>`).join("")}</div>
